@@ -14,7 +14,7 @@ void Chatroom::ChatRoomSession::HandleTaskFromServer(std::unordered_map<std::str
 void Chatroom::ChatRoomSession::HandleAction(std::unordered_map<std::string, std::string> action, tcp::socket &socket)
 {
 
-    auto action_error = ServiceChatroomServer::Chr_CheckErrorsChatRoom(action);
+    auto action_error = ServiceChatroomServer::CHK_Chr_CheckErrorsChatRoom(action);
     if (action_error)
     {
         ServiceChatroomServer::WriteErrorToSocket(socket, *action_error, CONSTANTS::RF_ERR_INITIATOR_CHATROOM);

@@ -33,7 +33,6 @@ namespace Service
     }
 
     const std::unordered_map<std::string, ACTION> Additional::action_scernario{
-        {CONSTANTS::ACT_CONNECT, ACTION::CONNECT},
         {CONSTANTS::ACT_CREATE_ROOM, ACTION::CREATE_ROOM},
         {CONSTANTS::ACT_CREATE_USER, ACTION::CREATE_USER},
         {CONSTANTS::ACT_DISCONNECT, ACTION::DISCONNECT},
@@ -46,13 +45,9 @@ namespace Service
         CONSTANTS::ACT_DISCONNECT, CONSTANTS::ACT_SEND_MESSAGE};
 
     const std::unordered_set<std::string> Service::Additional::server_actions{
-        CONSTANTS::ACT_GET_USERS, CONSTANTS::ACT_CONNECT};
+        CONSTANTS::ACT_CREATE_ROOM, CONSTANTS::ACT_CREATE_USER,
+        CONSTANTS::ACT_GET_USERS, CONSTANTS::ACT_LOGIN, CONSTANTS::ACT_ROOM_LIST};
 
     const std::unordered_set<std::string> Service::Additional::request_directions{
         CONSTANTS::RF_DIRECTION_SERVER, CONSTANTS::RF_DIRECTION_CHATROOM};
 }
-
-
-
-
-

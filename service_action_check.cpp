@@ -3,65 +3,10 @@
 //ПРОВЕРКА ОБЩАЯ
 namespace ServiceChatroomServer
 {
-    ///@brief Проверяет размер контейнера
-    std::optional<std::string> SizeActionIncorrect(const std::unordered_map<std::string, std::string> &action, size_t size)
+    
+    std::optional<std::string> CHK_ActionBaseIncorrect(const std::unordered_map<std::string, std::string> &action)
     {
-        if (action.size() != size)
-        {
-            return "SIZE OF " + action.at(CONSTANTS::LF_ACTION) + " IS INCORRECT EXPECTED: " + std::to_string(size);
-        }
-        return std::nullopt;
-    }
-    ///@brief Проверяет валидность токена
-    std::optional<std::string> TokenIncorrect(const std::unordered_map<std::string, std::string> &action)
-    {
-        if (!action.contains(CONSTANTS::LF_TOKEN))
-        {
-            return "NO TOKEN FIELD";
-        }
-
-        if (!action.at(CONSTANTS::LF_TOKEN).size() != CONSTANTS::N_TOKEN_LEN)
-        {
-            return "SIZE OF TOKEN: " + std::to_string(action.at(CONSTANTS::LF_TOKEN).size()) + " IS INCORRECT";
-        }
-        return std::nullopt;
-    }
-    ///@brief Проверяет валидность токена и размера
-    std::optional<std::string> ActionSizeAndTokenIncorrect(const std::unordered_map<std::string, std::string> &action, size_t size)
-    {
-
-        auto size_reason = SizeActionIncorrect(action, size);
-        if (size_reason)
-        {
-            return *size_reason;
-        }
-
-        auto token_error = TokenIncorrect(action);
-        if (token_error)
-        {
-            return *token_error;
-        }
-        return std::nullopt;
-    };
-
-    std::optional<std::string> ActionDirectionIncorrect(const std::unordered_map<std::string, std::string> &action)
-    {
-        if (!action.contains(CONSTANTS::LF_DIRECTION))
-        {
-            return "NO DIRECTION FIELD";
-        }
-
-        if (!Service::Additional::request_directions.contains(action.at(CONSTANTS::LF_DIRECTION)))
-        {
-            return "THE DIRECTION IS NOT RECOGNIZED";
-        }
-
-        return std::nullopt;
-    }
-
-    std::optional<std::string> ActionBaseIncorrect(const std::unordered_map<std::string, std::string> &action)
-    {
-        auto direction_err = ActionDirectionIncorrect(action);
+        auto direction_err = CHK_ActionDirectionIncorrect(action);
         if (direction_err)
         {
             return *direction_err;
@@ -80,6 +25,66 @@ namespace ServiceChatroomServer
         }
         return std::nullopt;
     }
+    
+    std::optional<std::string> CHK_ActionDirectionIncorrect(const std::unordered_map<std::string, std::string> &action)
+    {
+        if (!action.contains(CONSTANTS::LF_DIRECTION))
+        {
+            return "NO DIRECTION FIELD";
+        }
+
+        if (!Service::Additional::request_directions.contains(action.at(CONSTANTS::LF_DIRECTION)))
+        {
+            return "THE DIRECTION IS NOT RECOGNIZED";
+        }
+
+        return std::nullopt;
+    }
+
+    ///@brief Проверяет размер контейнера
+    std::optional<std::string> CHK_SizeActionIncorrect(const std::unordered_map<std::string, std::string> &action, size_t size)
+    {
+        if (action.size() != size)
+        {
+            return "SIZE OF " + action.at(CONSTANTS::LF_ACTION) + " IS INCORRECT EXPECTED: " + std::to_string(size);
+        }
+        return std::nullopt;
+    }
+    ///@brief Проверяет валидность токена
+    std::optional<std::string> CHK_TokenIncorrect(const std::unordered_map<std::string, std::string> &action)
+    {
+        if (!action.contains(CONSTANTS::LF_TOKEN))
+        {
+            return "NO TOKEN FIELD";
+        }
+
+        if (!action.at(CONSTANTS::LF_TOKEN).size() != CONSTANTS::N_TOKEN_LEN)
+        {
+            return "SIZE OF TOKEN: " + std::to_string(action.at(CONSTANTS::LF_TOKEN).size()) + " IS INCORRECT";
+        }
+        return std::nullopt;
+    }
+    ///@brief Проверяет валидность токена и размера
+    std::optional<std::string> CHK_ActionSizeAndTokenIncorrect(const std::unordered_map<std::string, std::string> &action, size_t size)
+    {
+
+        auto size_reason = CHK_SizeActionIncorrect(action, size);
+        if (size_reason)
+        {
+            return *size_reason;
+        }
+
+        auto token_error = CHK_TokenIncorrect(action);
+        if (token_error)
+        {
+            return *token_error;
+        }
+        return std::nullopt;
+    };
+
+    
+
+    
 
 }
 
@@ -90,7 +95,7 @@ namespace ServiceChatroomServer
     ///@brief Проверяет валидность контейнера действия послания сообщения
     std::optional<std::string> Chr_ActionSendMessageIncorrect(const std::unordered_map<std::string, std::string> &action)
     {
-        auto reason = ActionSizeAndTokenIncorrect(action, CONSTANTS::N_SEND_MESSAGE);
+        auto reason = CHK_ActionSizeAndTokenIncorrect(action, CONSTANTS::N_SEND_MESSAGE);
         if (reason)
         {
             return *reason;
@@ -115,7 +120,7 @@ namespace ServiceChatroomServer
     ///@brief Проверяет валидность контейнера действия отключения
     std::optional<std::string> Chr_ActionDisconnectIncorrect(const std::unordered_map<std::string, std::string> &action)
     {
-        auto reason = ActionSizeAndTokenIncorrect(action, CONSTANTS::N_DISCONNECT);
+        auto reason = CHK_ActionSizeAndTokenIncorrect(action, CONSTANTS::N_DISCONNECT);
         if (reason)
         {
             return *reason;
@@ -126,7 +131,7 @@ namespace ServiceChatroomServer
     std::optional<std::string> Chr_CheckErrorsChatRoom(const std::unordered_map<std::string, std::string> &action)
     {
 
-        auto err = ActionBaseIncorrect(action);
+        auto err = CHK_ActionBaseIncorrect(action);
         if (err)
         {
             return *err;
@@ -160,9 +165,9 @@ namespace ServiceChatroomServer
 namespace ServiceChatroomServer
 {
 
-    std::optional<std::string> SrvActionConnectIncorrect(const std::unordered_map<std::string, std::string> &action)
+    std::optional<std::string> Srv_ActionLoginIncorrect(const std::unordered_map<std::string, std::string> &action)
     {
-        auto reason = ActionSizeAndTokenIncorrect(action, CONSTANTS::N_CONNECT);
+        auto reason = CHK_ActionSizeAndTokenIncorrect(action, CONSTANTS::N_LOGIN);
         if (reason)
         {
             return *reason;

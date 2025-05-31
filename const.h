@@ -3,7 +3,6 @@
 struct CONSTANTS
 {
     // Actions
-    static const std::string ACT_CONNECT;
     static const std::string ACT_DISCONNECT;
     static const std::string ACT_GET_USERS;
     static const std::string ACT_SEND_MESSAGE;

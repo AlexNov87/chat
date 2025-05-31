@@ -117,14 +117,13 @@ namespace ServiceChatroomServer
 {
     std::string MakeAnswerError(std::string reason, std::string initiator);
     void WriteErrorToSocket(tcp::socket &socket, std::string reason, std::string initiator);
-    std::optional<std::string> ActionDirectionIncorrect(const std::unordered_map<std::string, std::string> &action);
-
-    std::optional<std::string> Chr_CheckErrorsChatRoom(const std::unordered_map<std::string, std::string> &action);
+    std::optional<std::string> CHK_ActionDirectionIncorrect(const std::unordered_map<std::string, std::string> &action);
+    std::optional<std::string> CHK_Chr_CheckErrorsChatRoom(const std::unordered_map<std::string, std::string> &action);
+    
     std::string Chr_MakeSuccessSendMessage();
 
-    std::string Srv_MakeSuccessAddUser(std::string token, std::string roomname);
     std::string Srv_MakeSuccessGetUsers(std::string userlist);
-    std::string Srv_MakeSuccessLogin(std::string name, std::string passwordhash);
+    std::string Srv_MakeSuccessLogin(std::string token, std::string roomname);
     std::string Srv_MakeSuccessCreateUser(std::string name);
     std::string Srv_MakeSuccessCreateRoom(std::string name);
     std::string Srv_MakeSuccessRoomList(std::string roomlist);
@@ -146,9 +145,9 @@ namespace UserInterface
     ///@brief Сериализованный объект для логина на сервере
     std::string US_SrvMakeObjLogin(std::string name, std::string password, std::string roomname);
     ///@brief Сериализованный объект для получения
-    std::string US_SrvMakeObjCreateUser(std::string name);
-    ///@brief Сериализованный объект для получения
+    std::string US_SrvMakeObjCreateUser(std::string name, std::string password);
+    ///@brief Сериализованный объект для создания комнаты
     std::string US_SrvMakeObjCreateRoom(std::string name);
-    ///@brief Сериализованный объект для получения
-    std::string US_SrvMakeObjRoomList(std::string roomlist);
+    ///@brief Сериализованный объект для получения списка комнат
+    std::string US_SrvMakeObjRoomList();
 }

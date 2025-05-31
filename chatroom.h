@@ -174,7 +174,7 @@ private:
         }
         
         std::string responce = ServiceChatroomServer::
-        Srv_MakeSuccessAddUser(token, std::move(roomname)); 
+        Srv_MakeSuccessLogin(token, std::move(roomname)); 
         
         
         net::post(users_.at(token).strand_, [&]()

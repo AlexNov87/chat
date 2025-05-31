@@ -1,5 +1,4 @@
 #include"const.h"
-const std::string CONSTANTS::ACT_CONNECT = "CONNECT";
 const std::string CONSTANTS::ACT_DISCONNECT = "DISCONNECT";
 const std::string CONSTANTS::ACT_GET_USERS = "GET_USERS";
 const std::string CONSTANTS::ACT_SEND_MESSAGE = "SEND_MESSAGE";
