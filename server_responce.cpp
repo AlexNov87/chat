@@ -1,4 +1,30 @@
 #include "service.h"
+using namespace std;
+namespace ServiceChatroomServer
+{
+    // ОТВЕТ СЕРВЕРА НА ОШИБКУ
+    std::string MakeAnswerError(std::string reason, string initiator)
+    {
+        unordered_map<string, string> res{
+            {CONSTANTS::LF_RESULT, CONSTANTS::RF_ERROR},
+            {CONSTANTS::LF_REASON, std::move(reason)},
+            {CONSTANTS::LF_INITIATOR, std::move(initiator)}};
+        return Service::SerializeUmap(res);
+    };
+
+    void WriteErrorToSocket(tcp::socket &socket, std::string reason, std::string initiator)
+    {
+
+        Service::DoubleGuardedExcept<void>(
+            [&]()
+            {
+                socket.write_some(net::buffer(MakeAnswerError(reason, initiator)));
+            },
+            "WriteErrorToSocket");
+    };
+}
+
+
 // SUCESS CHATROOM
 namespace ServiceChatroomServer
 {
