@@ -22,14 +22,10 @@ using tcp = net::ip::tcp;
 using namespace std::string_literals;
 
 class ChatRoomSession;
+class MainServer;
+
 class Chatroom
 {
-    enum class COMED_FROM
-    {
-        COMED_FROM_SERVER,
-        COMED_FROM_OLD_SOCKET
-    };
-
     struct Chatuser
     {
         Chatuser(std::string name, net::io_context &ioc, tcp::socket socket) : name_(std::move(name)),
@@ -52,7 +48,7 @@ class Chatroom
 
     private:
         bool HasToken(const std::string &token);
-        void HandleAction(std::unordered_map<std::string, std::string> action, tcp::socket &socket, Chatroom::COMED_FROM from);
+        void HandleAction(std::unordered_map<std::string, std::string> action, tcp::socket &socket);
     };
 
 public:
@@ -65,6 +61,8 @@ public:
     }
 
 private:
+    MainServer* mainserv_ ;
+    
     friend class ChatRoomSession;
     net::io_context ioc_;
     std::unordered_map<std::string, Chatuser> users_;
@@ -91,9 +89,10 @@ private:
         return has_token;
     }
 
-    void AwaitSocket(tcp::socket &socket)
+    void AwaitSocket(std::string& token)
     {
         
+        auto& socket = users_.at(token).socket_;
         try
         {
             boost::asio::streambuf buffer;
@@ -103,11 +102,15 @@ private:
                                               if (!ec)
                                               {
                                                   auto task = Service::GetTaskFromBuffer(buffer);
+                                                  
+                                                  
+                                                  
+                                                  
                                                   std::make_shared<ChatRoomSession>(this)->HandleExistingSocket(socket, task);
                                               }
                                               else
                                               {
-                                                 Service::WriteErrorToSocket(socket, ec.message(), "AwaitSocket");
+                                                 ServiceChatroomServer::WriteErrorToSocket(socket, ec.message(), "AwaitSocket");
                                               }
                                           });
         }
@@ -121,7 +124,8 @@ private:
             }
             else
             {
-                Service::WriteErrorToSocket(socket, "Read Error: " + std::string(err.what()), CONSTANTS::RF_ERR_INITIATOR_CHATROOM);
+                ServiceChatroomServer::WriteErrorToSocket
+                (socket, "Read Error: " + std::string(err.what()), CONSTANTS::RF_ERR_INITIATOR_CHATROOM);
             }
         }
     }
@@ -152,7 +156,7 @@ private:
         return true;
     }
 
-    void AddUser(tcp::socket socket, std::string name, std::string token)
+    void AddUser(tcp::socket socket, std::string name, std::string token, std::string roomname)
     {
         auto lam = [&]()
         {
@@ -167,12 +171,15 @@ private:
             DeleteUser(token);
             return;
         }
-
-        // шлем юзеру токен
+        
+        std::string responce = ServiceChatroomServer::
+        Srv_MakeSuccessAddUser(token, std::move(roomname)); 
+        
+        
         net::post(users_.at(token).strand_, [&]()
-                  { users_.at(token).socket_.write_some(net::buffer("Токен юзера")); });
+                  { users_.at(token).socket_.write_some(net::buffer(responce)); });
 
-        AwaitSocket(users_.at(token).socket_);
+        AwaitSocket(token);
     }
 
     void SendMessages(std::string token, std::string message)
@@ -196,7 +203,7 @@ private:
         // оповещаем потоки
         cond_.notify_all();
 
-        AwaitSocket(users_.at(token).socket_);
+        AwaitSocket(token);
     }
 
     void DeleteUser(std::string token)
@@ -208,28 +215,27 @@ private:
         MakeLockedModUsers(lam);
     }
 
-    void RoomMembers(tcp::socket &socket, COMED_FROM from)
+    std::string RoomMembers()
     {
         // Блокируем возможность рассылки по сокетам на время модификации списка
         std::unique_lock<std::mutex> ul(mut_users);
         // Запрещаем добавлять - удалять юзеров
         do_not_allow_modify_users = true;
         std::ostringstream oss;
-        oss << "USERS:\n";
+        oss << "[\n";
+        size_t nowpos = 0;
         for (auto &&[token, chatuser] : users_)
         {
-            oss << chatuser.name_ << '\n';
+            oss << '"' << chatuser.name_ << '"'; 
+            ++nowpos;
+            if(nowpos == users_.size() - 1){break;} 
+           oss << ", \n";
         }
+        oss << "]\n";
         do_not_allow_modify_users = false;
         // оповещаем потоки
         cond_.notify_all();
-
-        socket.write_some(net::buffer(oss.str()));
-
-        if (from == COMED_FROM::COMED_FROM_OLD_SOCKET)
-        {
-            AwaitSocket(socket);
-        }
+        return oss.str(); 
     }
 };
 
