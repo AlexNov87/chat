@@ -141,12 +141,10 @@ namespace UserInterface
 
 namespace UserInterface
 {
-    ///@brief Сериализованный объект для подключения
-    std::string US_SrvMakeObjConnect(std::string name, std::string roomname);
     ///@brief Сериализованный объект для получения списка пользователей
     std::string US_SrvMakeObjGetUsers(std::string name);
     ///@brief Сериализованный объект для логина на сервере
-    std::string US_SrvMakeObjLogin(std::string name);
+    std::string US_SrvMakeObjLogin(std::string name, std::string password, std::string roomname);
     ///@brief Сериализованный объект для получения
     std::string US_SrvMakeObjCreateUser(std::string name);
     ///@brief Сериализованный объект для получения

@@ -43,8 +43,7 @@ struct CONSTANTS
     ///@brief Размер объекта действия послания сообщения
     static const size_t N_SEND_MESSAGE;
 
-    ///@brief Размер объекта действия подключения
-    static const size_t N_CONNECT;
+    
     ///@brief Размер объекта действия для получения списка пользователей
     static const size_t N_GET_USERS;
     ///@brief Размер объекта действия логина

@@ -37,15 +37,7 @@ using namespace std;
             action[CONSTANTS::LF_DIRECTION] = CONSTANTS::RF_DIRECTION_SERVER;
         }
 
-        std::string US_SrvMakeObjConnect(std::string name, std::string roomname) // sz5
-        {
-            unordered_map<string, string> res{
-                {CONSTANTS::LF_ACTION, CONSTANTS::ACT_CONNECT},
-                {CONSTANTS::LF_NAME, std::move(name)},
-                {CONSTANTS::LF_ROOMNAME, std::move(roomname)}};
-            ChrSetServerDirection(res);
-            return Service::SerializeUmap(res);
-        };
+        
 
         std::string US_SrvMakeObjGetUsers(std::string name) // sz3
         {
@@ -56,12 +48,13 @@ using namespace std;
             return Service::SerializeUmap(res);
         };
 
-        std::string US_SrvMakeObjLogin(std::string name, std::string passwordhash) //sz4
+        std::string US_SrvMakeObjLogin(std::string name, std::string password, std::string roomname) //sz6
         {
             unordered_map<string, string> res{
              {CONSTANTS::LF_ACTION, CONSTANTS::ACT_LOGIN},
              {CONSTANTS::LF_NAME, std::move(name)},
-             {CONSTANTS::LF_PASSWORD , std::move(passwordhash)} 
+             {CONSTANTS::LF_ROOMNAME , std::move(roomname)},
+             {CONSTANTS::LF_PASSWORD , std::move(password)} 
             };
             ChrSetServerDirection(res);
             return Service::SerializeUmap(res);

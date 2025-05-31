@@ -40,11 +40,11 @@ const size_t CONSTANTS::N_SEND_MESSAGE = 4; // direction, action, token, message
 const size_t CONSTANTS::N_TOKEN_LEN = 32;
 const size_t CONSTANTS::N_MAX_MESSAGE_LEN = 512;
 
-const size_t CONSTANTS::N_CONNECT = 5;   // direction, action, roomname, username (token adds server)
+
 const size_t CONSTANTS::N_GET_USERS = 3; // direction, action, roomname
 
 // IN WORK
-const size_t CONSTANTS::N_LOGIN = 0;       // direction, action,
+const size_t CONSTANTS::N_LOGIN = 6;   // direction, action, roomname, username, password (token adds server)
 const size_t CONSTANTS::N_CREATE_ROOM = 0; // direction, action,
-const size_t CONSTANTS::N_ROOM_LIST = 0;   // direction, action,
+const size_t CONSTANTS::N_ROOM_LIST = 2;   // direction, action,
 const size_t CONSTANTS::N_CREATE_USER = 0; // direction, action,
