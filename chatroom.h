@@ -61,8 +61,9 @@ public:
     }
 
 private:
-    MainServer* mainserv_ ;
     
+    MainServer* mainserv_ ;
+    friend class MainServer;
     friend class ChatRoomSession;
     net::io_context ioc_;
     std::unordered_map<std::string, Chatuser> users_;
