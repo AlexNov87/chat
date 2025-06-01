@@ -1,4 +1,4 @@
-#include "chatroom.h"
+#include "srv.h"
 
 void Chatroom::ChatRoomSession::HandleExistingSocket(tcp::socket &socket, std::unordered_map<std::string, std::string> task)
 {
@@ -28,7 +28,7 @@ void Chatroom::ChatRoomSession::HandleAction(std::unordered_map<std::string, std
     {
     case Service::ACTION::SEND_MESSAGE:
     {
-        if (!HasToken(action.at(CONSTANTS::LF_TOKEN)))
+        if (!chatroom_->HasToken(action.at(CONSTANTS::LF_TOKEN)))
         {
             ServiceChatroomServer::WriteErrorToSocket(socket, CONSTANTS::RF_ERR_PERMISSION_DENIDED, CONSTANTS::RF_ERR_INITIATOR_CHATROOM);
             return;
@@ -38,7 +38,7 @@ void Chatroom::ChatRoomSession::HandleAction(std::unordered_map<std::string, std
     break;
     case Service::ACTION::DISCONNECT:
     {
-        if (!HasToken(action.at(CONSTANTS::LF_TOKEN)))
+        if (!chatroom_->HasToken(action.at(CONSTANTS::LF_TOKEN)))
         {
             ServiceChatroomServer::
                 WriteErrorToSocket(socket, CONSTANTS::RF_ERR_PERMISSION_DENIDED, CONSTANTS::RF_ERR_INITIATOR_CHATROOM);

@@ -128,7 +128,7 @@ namespace ServiceChatroomServer
         return std::nullopt;
     }
 
-    std::optional<std::string> Chr_CheckErrorsChatRoom(const std::unordered_map<std::string, std::string> &action)
+    std::optional<std::string> CHK_Chr_CheckErrorsChatRoom(const std::unordered_map<std::string, std::string> &action)
     {
 
         auto err = CHK_ActionBaseIncorrect(action);

@@ -139,3 +139,36 @@ private:
    };
 };
 
+
+
+
+/*
+void Listenx(){
+       try {
+        // Создаём серверный сокет, слушающий порт 8080
+        Poco::Net::ServerSocket serverSocket(80);
+
+        std::cout << "Server started, waiting for connections..." << std::endl;
+
+        while (true) {
+            // Принимаем входящее соединение (блокирующий вызов)
+            Poco::Net::StreamSocket clientSocket = serverSocket.acceptConnection();
+            std::cout << "Client connected from " << clientSocket.peerAddress().toString() << std::endl;
+
+            // Здесь можно читать/писать данные через clientSocket
+            // ...
+        }
+    }
+    catch (Poco::Exception& ex) {
+        std::cerr << "Server error: " << ex.displayText() << std::endl;
+    }
+}
+
+
+#include <Poco/Net/HTTPClientSession.h>
+#include <Poco/Net/HTTPRequest.h>
+#include <Poco/Net/HTTPResponse.h>
+#include <Poco/URI.h>
+#include <Poco/Net/ServerSocket.h>
+#include <Poco/Net/StreamSocket.h>
+*/
