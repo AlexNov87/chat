@@ -33,6 +33,12 @@ const std::string CONSTANTS::LF_DIRECTION = "DIRECTION";
 const std::string CONSTANTS::RF_DIRECTION_SERVER = "DIRECTION_SERVER";
 const std::string CONSTANTS::RF_DIRECTION_CHATROOM = "DIRECTION_CHATROOM";
 
+const std::string CONSTANTS::IP = "IP"; 
+const std::string CONSTANTS::PORT = "PORT"; 
+const std::string CONSTANTS::CHATROOMS = "CHATROOMS"; 
+
+
+
 const size_t CONSTANTS::N_DISCONNECT = 3;       // direction, action, token
 const size_t CONSTANTS::N_SEND_MESSAGE = 4; // direction, action, token, message
 

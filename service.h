@@ -23,6 +23,7 @@
 
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
+using task = std::unordered_map<std::string, std::string>;
 
 namespace Service
 {
@@ -54,6 +55,16 @@ namespace Service
         COMED_FROM_SERVER,
         COMED_FROM_OLD_SOCKET
     };
+
+    ///@brief Печать Unordered_Map
+    template <typename T1, typename T2>
+    void PrintUmap(std::unordered_map<T1, T2> object)
+    {
+        for (auto &&el : object)
+        {
+            std::cout << el.first << "->" << el.second << '\n';
+        };
+    }
 
     ///@brief Сериализатор Unordered_Map
     template <typename T1, typename T2>
@@ -91,7 +102,7 @@ namespace Service
         }
     };
 
-    std::unordered_map<std::string, std::string> GetTaskFromBuffer(net::streambuf &buffer);
+    task GetTaskFromBuffer(net::streambuf &buffer);
 
     template <typename T, typename Foo>
     T DoubleGuardedExcept(Foo foo, std::string fooname)
@@ -108,18 +119,22 @@ namespace Service
         {
             std::cout << "Foo:" << fooname << " UNKNOWN EXCEPTION\n";
         }
+        return foo();
     }
 
-    void TrimContainer(std::unordered_map<std::string, std::string> &action);
+    void TrimContainer(task &action);
+    std::string ReadFromFstream(std::ifstream &ifs);
 }
 
 namespace ServiceChatroomServer
 {
+    std::optional<std::string> CHK_ServerLoadObject(const boost::json::value &obj);
     std::string MakeAnswerError(std::string reason, std::string initiator);
     void WriteErrorToSocket(tcp::socket &socket, std::string reason, std::string initiator);
-    std::optional<std::string> CHK_ActionDirectionIncorrect(const std::unordered_map<std::string, std::string> &action);
-    std::optional<std::string> CHK_Chr_CheckErrorsChatRoom(const std::unordered_map<std::string, std::string> &action);
-    
+    std::optional<std::string> CHK_FieldDirectionIncorrect(const task &action);
+    std::optional<std::string> CHK_Chr_CheckErrorsChatRoom(const task &action);
+    std::optional<std::string> CHK_Chr_CheckErrorsChatServer(const task &action);
+
     std::string Chr_MakeSuccessSendMessage();
 
     std::string Srv_MakeSuccessGetUsers(std::string userlist);

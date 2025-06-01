@@ -1,17 +1,17 @@
 #include "srv.h"
 
-void Chatroom::ChatRoomSession::HandleExistingSocket(tcp::socket &socket, std::unordered_map<std::string, std::string> task)
+void Chatroom::ChatRoomSession::HandleExistingSocket(tcp::socket &socket, task task)
 {
     Service::DoubleGuardedExcept<void>([&]()
                                        { HandleAction(std::move(task), socket); }, "HandleExistingSocket");
 };
 
-void Chatroom::ChatRoomSession::HandleTaskFromServer(std::unordered_map<std::string, std::string> action, tcp::socket socket)
+void Chatroom::ChatRoomSession::HandleTaskFromServer(task action, tcp::socket socket)
 {
     HandleAction(action, socket);
 }
 
-void Chatroom::ChatRoomSession::HandleAction(std::unordered_map<std::string, std::string> action, tcp::socket &socket)
+void Chatroom::ChatRoomSession::HandleAction(task action, tcp::socket &socket)
 {
 
     auto action_error = ServiceChatroomServer::CHK_Chr_CheckErrorsChatRoom(action);

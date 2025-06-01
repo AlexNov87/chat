@@ -3,34 +3,53 @@ using namespace std;
 
 namespace Service
 {
-
     void MtreadRunContext(net::io_context &ioc)
     {
+        std::vector<jthread> run;
         for (int i = 0; i < std::thread::hardware_concurrency(); ++i)
         {
-            jthread jth([&ioc]
-                        { ioc.run(); });
+           run.push_back (jthread([&ioc]
+                        { ioc.run(); }));
         }
+        ioc.run();
     }
 
-    std::unordered_map<std::string, std::string> GetTaskFromBuffer(net::streambuf &buffer)
+    task GetTaskFromBuffer(net::streambuf &buffer)
     {
         const char *data = boost::asio::buffer_cast<const char *>(buffer.data());
         std::size_t size = buffer.size();
         std::string ln(data, size - 1);
-        std::unordered_map<std::string, std::string> task =
+        task task =
             Service::DeserializeUmap<std::string, std::string>(ln);
         TrimContainer(task);
         return task;
     }
 
-    void TrimContainer(std::unordered_map<std::string, std::string> &action)
+    void TrimContainer(task &action)
     {
         for (auto &pair : action)
         {
             boost::algorithm::trim(pair.second);
         }
     }
+
+    std::string ReadFromFstream(std::ifstream &ifs)
+    {
+        if (!ifs)
+        {
+            std::cerr << "Bad Filestream\n";
+            return CONSTANTS::RF_ERROR;
+        }
+        std::stringstream strm;
+
+        while (ifs)
+        {
+            std::string tmp;
+            std::getline(ifs, tmp);
+            strm << tmp;
+        }
+        return strm.str();
+    };
 
     const std::unordered_map<std::string, ACTION> Additional::action_scernario{
         {CONSTANTS::ACT_CREATE_ROOM, ACTION::CREATE_ROOM},

@@ -17,7 +17,6 @@ bool Chatroom::HasToken(const std::string &token)
 
     void Chatroom::AwaitSocket(std::string& token)
     {
-        
         auto& socket = users_.at(token).socket_;
         try
         {
@@ -39,17 +38,17 @@ bool Chatroom::HasToken(const std::string &token)
                                                        auto chrsess = std::make_shared<ChatRoomSession>(this);
                                                        chrsess->HandleExistingSocket(socket, task);
                                                     }
+                                                    //ЕСЛИ ЗАДАЧА ОТНОСИТСЯ К CЕРВЕРУ
                                                     auto servsessptr = std::make_shared<MainServer::ServerSession>(this->mainserv_);
-                                                    servsessptr->HandleSessionFromExistSocket(this->users_.at(token));  
+                                                    servsessptr->HandleSessionFromExistSocket(std::move(task),this->users_.at(token));  
                                               }
                                               else
                                               {
-                                                 ServiceChatroomServer::WriteErrorToSocket(socket, ec.message(), "AwaitSocket->");
+                                                 ServiceChatroomServer::WriteErrorToSocket(socket, ec.message(), "AwaitSocket");
                                               }
                                               AwaitSocket(token);
                                           };  
             
-           
             boost::asio::async_read_until(socket, buffer, '\0', lam);
         }
         catch (const boost::system::system_error &err)
@@ -99,8 +98,8 @@ bool Chatroom::HasToken(const std::string &token)
         Srv_MakeSuccessLogin(token, std::move(roomname)); 
         
         
-        net::post(users_.at(token).strand_, [&]()
-                  { users_.at(token).socket_.write_some(net::buffer(responce)); });
+        net::post(users_.at(token).strand_, [&, resp = std::move(responce)]()
+                  { users_.at(token).socket_.write_some(net::buffer(resp)); });
 
         AwaitSocket(token);
     }
@@ -118,8 +117,8 @@ bool Chatroom::HasToken(const std::string &token)
             {
                 continue;
             }
-            net::post(chatuser.strand_, [&]()
-                      { users_.at(token).socket_.write_some(net::buffer(message)); });
+            net::post(chatuser.strand_, [&, buf = net::buffer(message) ]()
+                      { users_.at(token).socket_.write_some(buf); });
         };
         // заканчиваем рассылку
         do_not_allow_modify_users = false;
@@ -159,4 +158,10 @@ bool Chatroom::HasToken(const std::string &token)
         // оповещаем потоки
         cond_.notify_all();
         return oss.str(); 
+    }
+
+    void Chatroom::HandleIncomeSocket(tcp::socket socket, task action)
+    {
+        ioc_.post([&]()
+                  { std::make_shared<ChatRoomSession>(this)->HandleTaskFromServer(action, std::move(socket)); });
     }

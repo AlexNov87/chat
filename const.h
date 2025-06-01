@@ -37,6 +37,10 @@ struct CONSTANTS
     static const std::string RF_DIRECTION_SERVER;
     static const std::string RF_DIRECTION_CHATROOM;
 
+    static const std::string IP ; 
+    static const std::string PORT; 
+    static const std::string CHATROOMS; 
+
     ///@brief Размер объекта действия отключения
     static const size_t N_DISCONNECT;
     ///@brief Размер объекта действия послания сообщения
