@@ -28,7 +28,7 @@ bool Chatroom::HasToken(const std::string &token)
                                                   //ЧИТАЕМ ЗАДАЧУ
                                                   auto task = Service::GetTaskFromBuffer(buffer);
                                                   //ПРОВЕРЯЕМ НАПРАВЛЕНИЕ ЗАДАЧИ (есть ли ошибка в поле "направление задачи")
-                                                  auto direction_err = ServiceChatroomServer::CHK_ActionDirectionIncorrect(task);
+                                                  auto direction_err = ServiceChatroomServer::CHK_FieldDirectionIncorrect(task);
                                                   if(direction_err){
                                                     ServiceChatroomServer::WriteErrorToSocket(socket, *direction_err, "AwaitSocket");
                                                     AwaitSocket(token);

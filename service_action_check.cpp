@@ -57,29 +57,61 @@ namespace ServiceChatroomServer
 // ПРОВЕРКА ОБЩАЯ
 namespace ServiceChatroomServer
 {
-    std::optional<std::string> CHK_FieldActionIncorrect(const task &action)
+    //ПРОВЕРЯЕТ ЕСТЬ ЛИ ПОЛЕ И ПУСТОЕ ЛИ ОНО
+    std::optional<std::string> CHK_FieldExistsAndNotEmpty(const task &action, const std::string &fieldname)
     {
-        if (!action.contains(CONSTANTS::LF_ACTION))
+        if (!action.contains(fieldname))
         {
-            return "NO ACTION FIELD";
+            return "NO ACTION " + fieldname;
         }
         if (action.at(CONSTANTS::LF_ACTION).empty())
         {
-            return "EMPTY ACTION";
+            return "EMPTY " + fieldname;
         }
+
+        return std::nullopt;
+    }
+    
+    //ПРОВЕРЯЕТ ЕСТЬ ЛИ ПОЛЕ И ПУСТОЕ ЛИ ОНО СО МНОГИМИ АРГУМЕНТАМИ
+    template <typename... Args>
+    std::optional<std::string> CHK_FieldExistsAndNotEmpty(const task &action, Args... args)
+    {
+        std::vector<const std::string *> vec;
+        (..., vec.push_back(&args));
+        for (auto sv : vec)
+        {
+            if (auto mis = CHK_FieldExistsAndNotEmpty(action, std::string(*sv)))
+            {
+                return *mis;
+            }
+        }
+        return std::nullopt;
+    }
+
+    std::optional<std::string> CHK_FieldActionIncorrect(const task &action)
+    {
+
+        auto reason = CHK_FieldExistsAndNotEmpty(action, CONSTANTS::LF_ACTION);
+        if (reason)
+        {
+            return *reason;
+        }
+
         if (!Service::Additional::chatroom_actions.contains(action.at(CONSTANTS::LF_ACTION)) && !Service::Additional::server_actions.contains(action.at(CONSTANTS::LF_ACTION)))
         {
             return "ACTION: " + action.at(CONSTANTS::LF_ACTION) + " IS UNRECOGNIZED";
         }
         return std::nullopt;
     }
-    
+
     ///@brief Проверяет валидность направления
     std::optional<std::string> CHK_FieldDirectionIncorrect(const task &action)
     {
-        if (!action.contains(CONSTANTS::LF_DIRECTION))
+
+        auto reason = CHK_FieldExistsAndNotEmpty(action, CONSTANTS::LF_DIRECTION);
+        if (reason)
         {
-            return "NO DIRECTION FIELD";
+            return *reason;
         }
 
         if (!Service::Additional::request_directions.contains(action.at(CONSTANTS::LF_DIRECTION)))
@@ -93,18 +125,19 @@ namespace ServiceChatroomServer
     ///@brief Проверяет валидность токена
     std::optional<std::string> CHK_FieldTokenIncorrect(const task &action)
     {
-        if (!action.contains(CONSTANTS::LF_TOKEN))
+        auto reason = CHK_FieldExistsAndNotEmpty(action, CONSTANTS::LF_TOKEN);
+        if (reason)
         {
-            return "NO TOKEN FIELD";
+            return *reason;
         }
 
-        if (!action.at(CONSTANTS::LF_TOKEN).size() != CONSTANTS::N_TOKEN_LEN)
+        if (action.at(CONSTANTS::LF_TOKEN).size() != CONSTANTS::N_TOKEN_LEN)
         {
+            std::cout << action.at(CONSTANTS::LF_TOKEN).size() << " != " << CONSTANTS::N_TOKEN_LEN <<'\n';
             return "SIZE OF TOKEN: " + std::to_string(action.at(CONSTANTS::LF_TOKEN).size()) + " IS INCORRECT";
         }
         return std::nullopt;
     }
-
 
     ///@brief Проверяет размер контейнера
     std::optional<std::string> CHK_SizeOfContainerActionIncorrect(const task &action, size_t size)
@@ -115,21 +148,21 @@ namespace ServiceChatroomServer
         }
         return std::nullopt;
     }
-    
+
     ///@brief Проверяет валидность токена и размера
     std::optional<std::string> CHK_ActionSizeAndTokenIncorrect(const task &action, size_t size)
     {
 
-        auto size_reason = CHK_SizeOfContainerActionIncorrect(action, size);
-        if (size_reason)
+        auto reason = CHK_SizeOfContainerActionIncorrect(action, size);
+        if (reason)
         {
-            return *size_reason;
+            return *reason;
         }
 
-        auto token_error = CHK_FieldTokenIncorrect(action);
-        if (token_error)
+        reason = CHK_FieldTokenIncorrect(action);
+        if (reason)
         {
-            return *token_error;
+            return *reason;
         }
         return std::nullopt;
     };
@@ -149,13 +182,10 @@ namespace ServiceChatroomServer
             return *reason;
         }
 
-        if (!action.contains(CONSTANTS::LF_MESSAGE))
+        reason = CHK_FieldExistsAndNotEmpty(action, CONSTANTS::LF_MESSAGE);
+        if (reason)
         {
-            return "NO MESSAGE FIELD";
-        }
-        if (action.at(CONSTANTS::LF_MESSAGE).empty())
-        {
-            return "NO MESSAGE";
+            return *reason;
         }
 
         if (action.at(CONSTANTS::LF_MESSAGE).size() > CONSTANTS::N_MAX_MESSAGE_LEN)
@@ -169,6 +199,7 @@ namespace ServiceChatroomServer
     std::optional<std::string> Chr_ActionDisconnectIncorrect(const task &action)
     {
         auto reason = CHK_ActionSizeAndTokenIncorrect(action, CONSTANTS::N_DISCONNECT);
+
         if (reason)
         {
             return *reason;
@@ -179,10 +210,10 @@ namespace ServiceChatroomServer
     std::optional<std::string> CHK_Chr_CheckErrorsChatRoom(const task &action)
     {
 
-        auto err = CHK_ActionBaseIncorrect(action);
-        if (err)
+        auto reason = CHK_FieldActionIncorrect(action);
+        if (reason)
         {
-            return *err;
+            return *reason;
         }
 
         auto testcase = Service::Additional::action_scernario.at(action.at(CONSTANTS::LF_ACTION));
@@ -190,20 +221,23 @@ namespace ServiceChatroomServer
         {
         case Service::ACTION::DISCONNECT:
         {
-            err = Chr_ActionDisconnectIncorrect(action);
+            reason = Chr_ActionDisconnectIncorrect(action);
         }
         break;
 
         case Service::ACTION::SEND_MESSAGE:
         {
-            err = Chr_ActionSendMessageIncorrect(action);
+            reason = Chr_ActionSendMessageIncorrect(action);
         }
         break;
+        default:
+            return action.at(CONSTANTS::LF_ACTION) + "CAN NOT BE A CHATROOM ACTION";
+            break;
         }
 
-        if (err)
+        if (reason)
         {
-            return *err;
+            return *reason;
         }
 
         return std::nullopt;
@@ -212,38 +246,46 @@ namespace ServiceChatroomServer
 
 namespace ServiceChatroomServer
 {
-
-    std::optional<std::string> CHK_Srv_IsAddressedToServer(const task &action){
-            if(Service::Additional::server_actions.contains(action.at(CONSTANTS::LF_ACTION))){
-                return "ACTION " + action.at(CONSTANTS::LF_ACTION) + " CAN NOT BE ADDRESSED TO SERVER";
-            }
-    }
-
-    std::optional<std::string> CHK_Srv_BaseToServerCheckIncorrect(const task &action){
-        
-        if(action.at(CONSTANTS::LF_DIRECTION) != CONSTANTS::RF_DIRECTION_SERVER){
-            return "DIRECTION TO SERVER" + action.at(CONSTANTS::LF_DIRECTION) +" IS INCORRECT";
+    // ЯВЛЯЕТСЯ ЛИ ЗАПРОС К СЕРВЕРУ
+    std::optional<std::string> CHK_Srv_IsAddressedToServer(const task &action)
+    {
+        if (!(Service::Additional::server_actions.contains(action.at(CONSTANTS::LF_ACTION))))
+        {
+            return "ACTION " + action.at(CONSTANTS::LF_ACTION) + " CAN NOT BE ADDRESSED TO SERVER";
         }
-
+        return std::nullopt;
+    }
+    // БАЗОВЫЕ ПРОВЕРКИ ЗАПРОСА К СЕРВЕРУ
+    std::optional<std::string> CHK_Srv_BaseToServerCheckIncorrect(const task &action)
+    {
+     //    std::cout<< "BASESRVGOOD1ENTER\n";
+        if (action.at(CONSTANTS::LF_DIRECTION) != CONSTANTS::RF_DIRECTION_SERVER)
+        {
+            return "DIRECTION TO SERVER" + action.at(CONSTANTS::LF_DIRECTION) + " IS INCORRECT";
+        }
+     //    std::cout<< "BASESRVGOOD2\n";
         // ПРОВЕРКА ПОЛЯ ДЕЙСТВИЯ
-        auto reason = CHK_ActionBaseIncorrect(action);
+        auto reason = CHK_FieldActionIncorrect(action);
         if (reason)
         {
             return *reason;
         }
-        //ПРОВЕРКА К СЕРВЕРУ ЛИ ОТНОСИТСЯ ДЕЙСТВИЕ 
+        // ПРОВЕРКА К СЕРВЕРУ ЛИ ОТНОСИТСЯ ДЕЙСТВИЕ
+  //       std::cout<< "BASESRVGOOD3\n";
         reason = CHK_Srv_IsAddressedToServer(action);
         if (reason)
         {
             return *reason;
         }
-
+        
+    //    std::cout<< "BASESRVGOODEXIT\n";
+        return std::nullopt;
     }
-    
-    // Проверка Логина
+
+    // ПРОВЕРКА ЛОГИНА
     std::optional<std::string> CHK_Srv_ActionLoginIncorrect(const task &action)
     {
-         
+
         // ПРОВЕРКА ПОЛЕЙ ТОКЕНА И РАЗМЕРА КОНТЕЙНЕРА
         auto reason = CHK_ActionSizeAndTokenIncorrect(action, CONSTANTS::N_LOGIN);
         if (reason)
@@ -251,48 +293,71 @@ namespace ServiceChatroomServer
             return *reason;
         }
 
-        if (!action.contains(CONSTANTS::LF_NAME))
+        reason = CHK_FieldExistsAndNotEmpty(action, CONSTANTS::LF_NAME, CONSTANTS::LF_ROOMNAME, CONSTANTS::LF_PASSWORD);
+        if (reason)
         {
-            return "NO NAME FIELD";
+            return *reason;
         }
-
-        if (action.at(CONSTANTS::LF_NAME).empty())
-        {
-            return "NAME CAN NOT BE EMPTY";
-        }
-
-        if (!action.contains(CONSTANTS::LF_ROOMNAME))
-        {
-            return "NO ROOMNAME FIELD";
-        }
-
-        if (action.at(CONSTANTS::LF_ROOMNAME).empty())
-        {
-            return "ROOMNAME CAN NOT BE EMPTY";
-        }
-
         return std::nullopt;
     }
 
+    // ПРОВЕРКА ПОЛУЧЕНИЯ ПОЛЬЗОВАТЕЛЕЙ
     std::optional<std::string> CHK_Srv_ActionGetUsersIncorrect(const task &action)
     {
-        
-    }
 
-    std::optional<std::string> CHK_Srv_ActionCreateUserIncorrect(const task &action)
-    {
-      
-        
-        
+        auto reason = CHK_SizeOfContainerActionIncorrect(action, CONSTANTS::N_GET_USERS);
+        if (reason)
+        {
+            return *reason;
+        }
+
+        reason = CHK_FieldExistsAndNotEmpty(action, CONSTANTS::LF_ROOMNAME);
         return std::nullopt;
     }
 
+    // ПРОВЕРКА СОЗДАНИЯ ПОЛЬЗОВАТЕЛЯ
+    std::optional<std::string> CHK_Srv_ActionCreateUserIncorrect(const task &action)
+    {
+        auto reason = CHK_SizeOfContainerActionIncorrect(action, CONSTANTS::N_CREATE_USER);
+        if (reason)
+        {
+            return *reason;
+        }
+        reason = CHK_FieldExistsAndNotEmpty(action, CONSTANTS::LF_NAME, CONSTANTS::LF_PASSWORD);
+        if (reason)
+        {
+            return *reason;
+        }
+        return std::nullopt;
+    }
 
+    // ПРОВЕРКА СОЗДАНИЯ КОМНАТЫ
+    std::optional<std::string> CHK_Srv_ActionCreateRoomIncorrect(const task &action)
+    {
+        auto reason = CHK_SizeOfContainerActionIncorrect(action, CONSTANTS::N_CREATE_ROOM);
+        if (reason)
+        {
+            return *reason;
+        }
+        
+        reason = CHK_FieldExistsAndNotEmpty(action, CONSTANTS::LF_ROOMNAME);
+        if (reason)
+        {
+            return *reason;
+        }
+        return std::nullopt;
+    }
 
-
-
-
-
+    // ПРОВЕРКА ПОЛУЧЕНИЯ СПИСКА КОМНАТ
+    std::optional<std::string> CHK_Srv_ActionRoomListIncorrect(const task &action)
+    {
+        auto reason = CHK_SizeOfContainerActionIncorrect(action, CONSTANTS::N_ROOM_LIST);
+        if (reason)
+        {
+            return *reason;
+        }
+        return std::nullopt;
+    }
 
     std::optional<std::string> CHK_Chr_CheckErrorsChatServer(const task &action)
     {
@@ -300,14 +365,34 @@ namespace ServiceChatroomServer
         if (reason)
         {
             return *reason;
-        } 
+        }
         
-        
-        
-        
-        
-        
-        
+        auto testcase = Service::Additional::action_scernario.at(action.at(CONSTANTS::LF_ACTION));
+        switch (testcase)
+        {
+        case Service::ACTION::CREATE_ROOM:
+            reason = CHK_Srv_ActionCreateRoomIncorrect(action);
+            break;
+
+        case Service::ACTION::CREATE_USER:
+            reason = CHK_Srv_ActionCreateUserIncorrect(action);
+            break;
+
+        case Service::ACTION::GET_USERS:
+            reason = CHK_Srv_ActionGetUsersIncorrect(action);
+            break;
+
+        case Service::ACTION::LOGIN:
+            reason = CHK_Srv_ActionLoginIncorrect(action);
+            break;
+
+        case Service::ACTION::ROOM_LIST:
+            reason = CHK_Srv_ActionRoomListIncorrect(action);
+            break;
+
+        default:
+            break;
+        }
         return std::nullopt;
     };
 

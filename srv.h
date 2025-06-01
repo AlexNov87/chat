@@ -98,14 +98,12 @@ class MainServer
 {
     friend class Chatroom;
     friend class ServerSession;
-    
-    net::io_context& ioc_;
-    tcp::acceptor acceptor_;
-    bool is_first_run_ = true;
-    
-    tcp::endpoint endpoint_;
-    
 
+    net::io_context &ioc_;
+    tcp::acceptor acceptor_;
+    tcp::endpoint endpoint_;
+
+    bool is_first_run_ = true;
     std::unordered_map<std::string, std::shared_ptr<Chatroom>> rooms_;
 
     class ServerSession : public std::enable_shared_from_this<ServerSession>
@@ -119,27 +117,18 @@ class MainServer
             net::streambuf buffer;
             net::read_until(socket, buffer, '\0');
             task action = Service::DoubleGuardedExcept<task>(std::bind(Service::GetTaskFromBuffer, std::ref(buffer)), "HandleSession");
-            
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          // net::post(server_->ioc_, [=](){Service::PrintUmap(action);});
+            net::post(server_->ioc_, [=]()
+                      { Service::PrintUmap(action); });
         };
         void HandleSessionFromExistSocket(task action, Chatroom::Chatuser &chatuser) {
-
+        
         };
     };
 
 public:
     void Listen();
 
-    MainServer(net::io_context& ioc) : ioc_(ioc), acceptor_(net::make_strand(ioc_))
+    MainServer(net::io_context &ioc) : ioc_(ioc), acceptor_(net::make_strand(ioc_))
     {
         init();
     }
