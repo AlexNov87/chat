@@ -6,17 +6,32 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/streambuf.hpp>
+#include <boost/asio/deadline_timer.hpp>
 #include <boost/json.hpp>
 
-#include <sstream>
-#include <string>
+#include <boost/asio/strand.hpp>
+#include <boost/asio/post.hpp>
+#include <boost/asio/dispatch.hpp>
+#include <boost/asio/read.hpp>
+#include <boost/asio/read_until.hpp>
+
 #include <unordered_map>
-#include <unordered_set>
-#include <functional>
+#include <condition_variable>
+#include <mutex>
+#include <memory>
+#include <variant>
+
 #include <iostream>
 #include <fstream>
+#include <sstream>
+#include <syncstream>
+#include <chrono>
 
+#include <string>
+#include <unordered_set>
+#include <functional>
 #include <thread>
+#include <array>
 #include <optional>
 
 #include "const.h"
@@ -62,8 +77,9 @@ namespace Service
     {
         for (auto &&el : object)
         {
-            std::cout << el.first << "->" << el.second << '\n';
+           std::osyncstream(std::cout) << el.first << "->" << el.second << '\n';
         };
+         std::osyncstream(std::cout)<<'\n';
     }
 
     ///@brief Сериализатор Unordered_Map
@@ -102,10 +118,8 @@ namespace Service
         }
     };
 
-    task GetTaskFromBuffer(net::streambuf &buffer);
-
     template <typename T, typename Foo>
-    T DoubleGuardedExcept(Foo foo, std::string fooname)
+    T DoubleGuardedExcept(Foo foo, std::string fooname, std::ostream &os = std::cout)
     {
         try
         {
@@ -113,17 +127,22 @@ namespace Service
         }
         catch (const std::exception &ex)
         {
-            std::cout << "Foo:" << fooname << "  " << ex.what() << '\n';
+            os << "Foo:" << fooname << "  " << ex.what() << '\n';
         }
         catch (...)
         {
-            std::cout << "Foo:" << fooname << " UNKNOWN EXCEPTION\n";
+            os << "Foo:" << fooname << " UNKNOWN EXCEPTION\n";
         }
         return foo();
     }
 
     void TrimContainer(task &action);
     std::string ReadFromFstream(std::ifstream &ifs);
+    bool IsAliveSocket(tcp::socket &sock);
+    void ShutDownSocket(tcp::socket &sock);
+    std::optional<std::string> GetTaskFromSocket(tcp::socket &socket);
+    std::vector<task> ExtractObjectsfromSocket(tcp::socket &socket);
+    task GetTaskFromBuffer(net::streambuf &buffer);
 }
 
 namespace ServiceChatroomServer

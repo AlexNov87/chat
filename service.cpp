@@ -8,21 +8,69 @@ namespace Service
         std::vector<jthread> run;
         for (int i = 0; i < std::thread::hardware_concurrency(); ++i)
         {
-           run.push_back (jthread([&ioc]
-                        { ioc.run(); }));
+            run.push_back(jthread([&ioc]
+                                  { ioc.run(); }));
         }
         ioc.run();
+    }
+
+    task ConstructTask(const char *data, size_t size)
+    {
+
+        std::string ln(data, size);
+
+        std::cout << "LN->" << ln << "<-\n";
+
+        auto lam = [&]()
+        {
+            task task =
+                Service::DeserializeUmap<std::string, std::string>(ln);
+            std::cout << "EXIT->\n";
+            return task;
+        };
+
+        return DoubleGuardedExcept<task>(lam, "CTASK");
     }
 
     task GetTaskFromBuffer(net::streambuf &buffer)
     {
         const char *data = boost::asio::buffer_cast<const char *>(buffer.data());
         std::size_t size = buffer.size();
-        std::string ln(data, size - 1);
-        task task =
-            Service::DeserializeUmap<std::string, std::string>(ln);
-        TrimContainer(task);
-        return task;
+        return ConstructTask(data, size);
+    }
+
+    task GetTaskFromBufferM(net::mutable_buffer &buffer)
+    {
+        const char *data = static_cast<const char *>(buffer.data());
+        std::size_t size = buffer.size();
+        return ConstructTask(data, size);
+    }
+
+    std::optional<std::string> GetTaskFromSocket(tcp::socket &socket)
+    {
+        boost::system::error_code ec;
+        
+        if (!Service::IsAliveSocket(socket))
+        {
+            std::cerr << "THE SOCKET IS NOT ALIVE FOO\n";
+            return std::nullopt;
+        }
+        net::streambuf buffer; 
+        auto sym_read = net::read(socket, buffer, ec);
+        if (sym_read == 0)
+        {
+            return std::nullopt;
+        }
+        if (ec && ec != net::error::eof)
+        {
+            std::cout << "RETURNING GLOBAL EWRROR\n";
+            std::cout << ec.what() << '\n';
+            return std::nullopt;
+        }
+        const char *data = boost::asio::buffer_cast<const char *>(buffer.data());
+        std::string ret = std::string(data, buffer.size()) ;
+        return  ret;
+        
     }
 
     void TrimContainer(task &action)
@@ -50,6 +98,73 @@ namespace Service
         }
         return strm.str();
     };
+
+    bool IsAliveSocket(tcp::socket &sock)
+    {
+        if (!sock.is_open())
+        {
+            return false;
+        }
+        boost::system::error_code ec;
+        char data;
+        size_t len = sock.receive(boost::asio::buffer(&data, 1), boost::asio::socket_base::message_peek, ec);
+
+        if (ec)
+        {
+
+            if (ec == boost::asio::error::would_block || boost::asio::error::try_again)
+            {   
+                return true;
+            }
+            if (ec == boost::asio::error::eof)
+            {
+                return false;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        // Данные доступны для чтения — соединение живо
+        return len > 0;
+    }
+
+    void ShutDownSocket(tcp::socket &sock)
+    {
+        boost::system::error_code ec;
+        sock.cancel(ec);
+        if(ec){
+            std::cout << ec.what() << std::endl;
+        }
+        sock.shutdown(sock.shutdown_both, ec);
+        if(ec){
+            std::cout << ec.what() << std::endl;
+        }
+        sock.close();
+        if(ec){
+            std::cout << ec.what() << std::endl;
+        }
+    };
+
+
+    std::vector<task> ExtractObjectsfromSocket(tcp::socket &socket){
+            std::stringstream oss;
+            while (auto action = Service::GetTaskFromSocket(socket))
+            {
+                oss << *action;   
+            };
+         std::vector<task> tasks;
+            while(oss){
+                std::string tmp;   
+                std::getline(oss, tmp, '\0');
+                if(tmp.empty()){break;}
+                auto task = Service::DeserializeUmap<std::string,std::string>(std::move(tmp));
+                tasks.push_back(std::move(task));
+            };
+       return tasks;
+    };
+
+    
 
     const std::unordered_map<std::string, ACTION> Additional::action_scernario{
         {CONSTANTS::ACT_CREATE_ROOM, ACTION::CREATE_ROOM},

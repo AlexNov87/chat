@@ -2,24 +2,6 @@
 #include "tokenizer.h"
 #include "service.h"
 
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/strand.hpp>
-#include <boost/asio/post.hpp>
-#include <boost/asio/dispatch.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/read.hpp>
-#include <boost/asio/read_until.hpp>
-
-#include <unordered_map>
-#include <condition_variable>
-#include <mutex>
-#include <memory>
-#include <variant>
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
-
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
 using namespace std::string_literals;
@@ -85,7 +67,6 @@ private:
         cond_.notify_all();
     }
     bool HasToken(const std::string &token);
-    bool IsAliveSocket(tcp::socket &sock);
     void AwaitSocket(std::string &token);
 
     void AddUser(tcp::socket socket, std::string name, std::string token, std::string roomname);
@@ -112,16 +93,31 @@ class MainServer
 
     public:
         ServerSession(MainServer *server) : server_(server) {}
-        void HandleSession(tcp::socket socket)
+
+        void HandleSession(std::shared_ptr<tcp::socket> socket)
         {
-            net::streambuf buffer;
-            net::read_until(socket, buffer, '\0');
-            task action = Service::DoubleGuardedExcept<task>(std::bind(Service::GetTaskFromBuffer, std::ref(buffer)), "HandleSession");
-            net::post(server_->ioc_, [=]()
-                      { Service::PrintUmap(action); });
+            if (!Service::IsAliveSocket(*socket))
+            {
+                Service::ShutDownSocket(*socket);
+                return;
+            }
+
+            std::atomic_bool condition = true;
+            net::steady_timer timer(server_->ioc_);
+            auto self = this->shared_from_this();
+            timer.async_wait([socket, self, &condition](const boost::system::error_code &ec)
+                             {
+                 if(condition){return;}
+                 std::cout << "Timer expired!" << std::endl;
+                 Service::ShutDownSocket(*socket); });
+            timer.expires_after(std::chrono::milliseconds(3));
+            auto tasks = Service::DoubleGuardedExcept<std::vector<task>>([socket]()
+                                                                         { return Service::ExtractObjectsfromSocket(*socket); }, "HandleSession");
+            condition = false;
         };
+
         void HandleSessionFromExistSocket(task action, Chatroom::Chatuser &chatuser) {
-        
+
         };
     };
 

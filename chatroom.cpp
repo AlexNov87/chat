@@ -67,16 +67,7 @@ bool Chatroom::HasToken(const std::string &token)
         }
     }
 
-    bool Chatroom::IsAliveSocket(tcp::socket &sock)
-    {
-        boost::system::error_code ec;
-        sock.non_blocking(true, ec);
-        if (ec)
-        {
-            return false;
-        }
-        return true;
-    }
+    
 
     void Chatroom::AddUser(tcp::socket socket, std::string name, std::string token, std::string roomname)
     {
@@ -88,7 +79,7 @@ bool Chatroom::HasToken(const std::string &token)
         MakeLockedModUsers(lam);
 
         // Если сокет "Не жив - выходим"
-        if (!IsAliveSocket(users_.at(token).socket_))
+        if (!Service::IsAliveSocket(users_.at(token).socket_))
         {
             DeleteUser(token);
             return;
@@ -113,7 +104,7 @@ bool Chatroom::HasToken(const std::string &token)
                    { return modyfiing_users == false; });
         for (auto &&[token, chatuser] : users_)
         {
-            if (!IsAliveSocket(chatuser.socket_))
+            if (!Service::IsAliveSocket(chatuser.socket_))
             {
                 continue;
             }

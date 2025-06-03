@@ -8,4 +8,5 @@ int main()
     net::io_context ioc(num_threads);
     MainServer server(ioc);
     server.Listen();
+    Service::MtreadRunContext(ioc);
 }
