@@ -149,18 +149,18 @@ namespace Service
     ///@brief Выключает сокет
     void ShutDownSocket(tcp::socket &sock);
     void ShutDownSocket(shared_socket sock);
-        
+
     ///@brief Извлекает список полученыых обьектов из сокета
     std::vector<task> ExtractObjectsfromSocket(tcp::socket &socket);
     ///@brief Извлекает список полученыых обьектов из сокета в виде shared_ptr
-    std::vector<shared_task>ExtractSharedObjectsfromSocket(tcp::socket &socket);
-    
-    ///@brief Извлекает список полученыых обьектов из буфера
-    std::vector<task> ExtractObjectsfromBuffer(net::streambuf& buffer);
-   ///@brief Извлекает список полученыых обьектов из буфера в виде shared_ptr
-    std::vector<shared_task>ExtractSharedObjectsfromBuffer(net::streambuf& buffer);
+    std::vector<shared_task> ExtractSharedObjectsfromSocket(tcp::socket &socket);
 
-    shared_strand MakeSharedStrand(net::io_context& ioc);
+    ///@brief Извлекает список полученыых обьектов из буфера
+    std::vector<task> ExtractObjectsfromBuffer(net::streambuf &buffer);
+    ///@brief Извлекает список полученыых обьектов из буфера в виде shared_ptr
+    std::vector<shared_task> ExtractSharedObjectsfromBuffer(net::streambuf &buffer);
+
+    shared_strand MakeSharedStrand(net::io_context &ioc);
 }
 
 namespace ServiceChatroomServer
@@ -180,6 +180,8 @@ namespace ServiceChatroomServer
 
     ///@brief Успешное послание сообщения
     std::string Chr_MakeSuccessSendMessage();
+    ///@brief Успешное получение сообщений до конннекта
+    std::string Chr_MakeSuccessLastMessages(std::string msglist);
     ///@brief Успешное получение списка юзеров
     std::string Srv_MakeSuccessGetUsers(std::string userlist);
     ///@brief Успешный вход в систему

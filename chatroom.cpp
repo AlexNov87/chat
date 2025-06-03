@@ -2,13 +2,13 @@
 bool Chatroom::HasToken(const std::string &token)
     {
         // блокируем возможность подключение и удаления юзеров
-        std::unique_lock<std::mutex> ul(mut_users);
+        std::unique_lock<std::mutex> ul(mut_users_);
         do_not_allow_modify_users = true;
         cond_.wait(ul, [&]()
                    { return modyfiing_users == false; });
 
         bool has_token = users_.contains(token);
-
+       
         do_not_allow_modify_users = false;
         // оповещаем потоки
         cond_.notify_all();
@@ -78,7 +78,6 @@ bool Chatroom::HasToken(const std::string &token)
     {
         auto lam = [&]()
         {
-            std::cout << "USER: " << name << "CONNECTED MEMBERS: " << users_.size() << '\n'; 
             users_.insert({token, Chatuser(std::move(name), ioc_, socket)});
         };
         // Блокируем возможность слать по сокетам на время модификации списка юзеров
@@ -93,19 +92,21 @@ bool Chatroom::HasToken(const std::string &token)
         
         std::string responce = ServiceChatroomServer::
         Srv_MakeSuccessLogin(token, std::move(roomname)); 
-        
-        
-        
         net::post( *(users_.at(token).strand_), [&, resp = std::move(responce)]()
                   { users_.at(token).socket_->write_some(net::buffer(resp));});
 
+        std::string lastmess = msg_man_.LastMessages();
+        net::post( *(users_.at(token).strand_), [&, resp = std::move(lastmess)]()
+                  { users_.at(token).socket_->write_some(net::buffer(resp));});
+
+        msg_man_.ServiceMessage(users_.at(token).name_ + " IS CONNECTED" );
         AwaitSocket(token);
     }
 
     void Chatroom::SendMessages(const std::string& token, const std::string& message)
     {
         // блокируем возможность подключение и удаления юзеров
-        std::unique_lock<std::mutex> ul(mut_users);
+        std::unique_lock<std::mutex> ul(mut_users_);
         do_not_allow_modify_users = true;
         cond_.wait(ul, [&]()
                    { return modyfiing_users == false; });
@@ -121,6 +122,7 @@ bool Chatroom::HasToken(const std::string &token)
             }
             net::post(*chatuser.strand_, [&, buf = net::buffer(message) ]()
                       { users_.at(token).socket_->write_some(buf); });
+            
         };
         // заканчиваем рассылку
         do_not_allow_modify_users = false;
@@ -141,7 +143,7 @@ bool Chatroom::HasToken(const std::string &token)
     std::string Chatroom::RoomMembers()
     {
         // Блокируем возможность рассылки по сокетам на время модификации списка
-        std::unique_lock<std::mutex> ul(mut_users);
+        std::unique_lock<std::mutex> ul(mut_users_);
         // Запрещаем добавлять - удалять юзеров
         do_not_allow_modify_users = true;
         std::ostringstream oss;

@@ -35,16 +35,17 @@ public:
     Chatroom(net::io_context &ioc) : ioc_(ioc) {}
 
 private:
-    MainServer *mainserv_;
     friend class MainServer;
     friend class ChatRoomSession;
+    MainServer *mainserv_;
     net::io_context &ioc_;
     std::unordered_map<std::string, Chatuser> users_;
 
     std::condition_variable cond_;
     bool modyfiing_users = false;
     bool do_not_allow_modify_users = false;
-    std::mutex mut_users;
+    std::mutex mut_users_;
+    MessageManager msg_man_;
 
 private:
     template <typename Foo>

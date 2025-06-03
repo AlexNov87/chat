@@ -7,6 +7,7 @@
 
 class MessageManager
 {
+public:
     void AddUserMessage(const std::string &message, std::string &autor)
     {
         std::lock_guard<std::mutex> lg(mtx_msg_);

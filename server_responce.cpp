@@ -96,4 +96,13 @@ namespace ServiceChatroomServer
         return Service::SerializeUmap<std::string, std::string>(res);
     };
 
+   // ОТВЕТ СЕРВЕРА НА УСПЕШНОЕ ПОЛУЧЕНИЕ ПРЕДЫДУЩИХ СООБЩЕНИЙ
+    std::string Chr_MakeSuccessLastMessages(std::string msglist)
+     {
+        task res = GetSuccess();
+        res[CONSTANTS::LF_ACTION] = CONSTANTS::ACT_EARLIER_MESS;
+        res[CONSTANTS::LF_MESSAGE] = std::move(msglist);
+        return Service::SerializeUmap<std::string, std::string>(res);
+    };
+
 }
