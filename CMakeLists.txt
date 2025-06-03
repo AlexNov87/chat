@@ -19,6 +19,7 @@ service_action_check.cpp
 tokenizer.h tokenizer.cpp 
 service_action_check.cpp
 server_responce.cpp
+server_session.cpp
 )
 
 set(u
@@ -42,6 +43,10 @@ target_link_libraries(ex PRIVATE ${Boost_LIBRARIES} Poco::Net Poco::Foundation)
 add_definitions(-DPOCO_STATIC)
 add_executable(cl cli.cpp  ${vars} )
 target_link_libraries(cl ${Boost_LIBRARIES})
+
+add_executable(clx clix.cpp  ${vars} )
+target_link_libraries(cl ${Boost_LIBRARIES})
+target_link_libraries(clx ${Boost_LIBRARIES})
 
 
 

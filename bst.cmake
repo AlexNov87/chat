@@ -18,6 +18,7 @@ endif()
 set (COMP_PACK 
    serialization
    json
+   coroutine
 )
  
 find_package(Boost COMPONENTS ${COMP_PACK} REQUIRED)
