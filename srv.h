@@ -1,10 +1,7 @@
 #pragma once
 #include "tokenizer.h"
+#include "message_man.h"
 #include "service.h"
-
-namespace net = boost::asio;
-using tcp = net::ip::tcp;
-using namespace std::string_literals;
 
 class MainServer;
 
@@ -13,10 +10,10 @@ class Chatroom
     struct Chatuser
     {
         Chatuser(std::string name, net::io_context &ioc, shared_socket socket) : name_(std::move(name)),
-                                                                               strand_(net::make_strand(ioc)),
-                                                                               socket_(socket) {};
+                                                                                 strand_(Service::MakeSharedStrand(ioc)),
+                                                                                 socket_(socket) {};
         std::string name_;
-        boost::asio::strand<boost::asio::io_context::executor_type> strand_;
+        shared_strand strand_;
         shared_socket socket_;
     };
 
@@ -27,17 +24,15 @@ class Chatroom
     public:
         ChatRoomSession(Chatroom *chat) : chatroom_(chat) {};
 
-        void HandleExistingSocket(shared_socket socket, task action);
-        void HandleTaskFromServer(shared_socket socket, task action);
+        void HandleExistingSocket(shared_socket socket, shared_task action);
+        void HandleTaskFromServer(shared_socket socket, shared_task action);
 
     private:
-        void HandleAction(shared_socket socket, task action);
+        void HandleAction(shared_socket socket, shared_task action);
     };
 
 public:
     Chatroom(net::io_context &ioc) : ioc_(ioc) {}
-
-   
 
 private:
     MainServer *mainserv_;
@@ -70,8 +65,8 @@ private:
     void AwaitSocket(const std::string &token);
 
     void AddUser(shared_socket socket, std::string name, std::string token, std::string roomname);
-    void SendMessages(const std::string& token,const std::string& message);
-    void DeleteUser(const std::string& token);
+    void SendMessages(const std::string &token, const std::string &message);
+    void DeleteUser(const std::string &token);
     std::string RoomMembers();
 };
 
@@ -91,16 +86,17 @@ class MainServer
     {
         MainServer *server_;
 
-        void Execute(const task_complex& , shared_socket socket){
-
+        void Execute(const task_complex &, shared_socket socket)
+        {
         }
+
+        //  void ExectuteReadySession(shared_socket socket, shared_task action,   )
 
     public:
         ServerSession(MainServer *server) : server_(server) {}
+        void HandleSession(shared_socket socket);
 
-        void HandleSession(std::shared_ptr<tcp::socket> socket);
-
-        void HandleSessionFromExistSocket(task action, Chatroom::Chatuser &chatuser) {
+        void HandleExistsSocket(shared_task action, Chatroom::Chatuser &chatuser) {
 
         };
     };

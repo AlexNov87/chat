@@ -25,31 +25,26 @@ bool Chatroom::HasToken(const std::string &token)
                                           {
                                               if (!ec)
                                               {
-                                                         
+                                                auto actions = Service::ExtractSharedObjectsfromBuffer(buffer);
                                                   
                                                   
-                                                  
-                                                  
-                                                  
-                                                  
-                                                  
-                                                  
-                                                  //ЧИТАЕМ ЗАДАЧУ
-                                                  auto task = Service::GetTaskFromBuffer(buffer);
+                                                  for (auto action : actions){
+                                                
                                                   //ПРОВЕРЯЕМ НАПРАВЛЕНИЕ ЗАДАЧИ (есть ли ошибка в поле "направление задачи")
-                                                  auto direction_err = ServiceChatroomServer::CHK_FieldDirectionIncorrect(task);
+                                                  auto direction_err = ServiceChatroomServer::CHK_FieldDirectionIncorrect(*action);
                                                   if(direction_err){
                                                     ServiceChatroomServer::WriteErrorToSocket(socket, *direction_err, "AwaitSocket");
                                                     AwaitSocket(token);
                                                   }
                                                     //ЕСЛИ ЗАДАЧА ОТНОСИТСЯ К ЧАТ-РУМУ 
-                                                    if(task.at(CONSTANTS::LF_DIRECTION) == CONSTANTS::RF_DIRECTION_CHATROOM) {
+                                                    if(action->at(CONSTANTS::LF_DIRECTION) == CONSTANTS::RF_DIRECTION_CHATROOM) {
                                                        auto chrsess = std::make_shared<ChatRoomSession>(this);
-                                                       chrsess->HandleExistingSocket(socket, task);
+                                                       chrsess->HandleExistingSocket(socket, action);
                                                     }
                                                     //ЕСЛИ ЗАДАЧА ОТНОСИТСЯ К CЕРВЕРУ
                                                     auto servsessptr = std::make_shared<MainServer::ServerSession>(this->mainserv_);
-                                                    servsessptr->HandleSessionFromExistSocket(std::move(task),this->users_.at(token));  
+                                                    servsessptr->HandleExistsSocket(action ,this->users_.at(token));  
+                                                  }
                                               }
                                               else
                                               {
@@ -83,6 +78,7 @@ bool Chatroom::HasToken(const std::string &token)
     {
         auto lam = [&]()
         {
+            std::cout << "USER: " << name << "CONNECTED MEMBERS: " << users_.size() << '\n'; 
             users_.insert({token, Chatuser(std::move(name), ioc_, socket)});
         };
         // Блокируем возможность слать по сокетам на время модификации списка юзеров
@@ -99,7 +95,8 @@ bool Chatroom::HasToken(const std::string &token)
         Srv_MakeSuccessLogin(token, std::move(roomname)); 
         
         
-        net::post(users_.at(token).strand_, [&, resp = std::move(responce)]()
+        
+        net::post( *(users_.at(token).strand_), [&, resp = std::move(responce)]()
                   { users_.at(token).socket_->write_some(net::buffer(resp));});
 
         AwaitSocket(token);
@@ -112,20 +109,23 @@ bool Chatroom::HasToken(const std::string &token)
         do_not_allow_modify_users = true;
         cond_.wait(ul, [&]()
                    { return modyfiing_users == false; });
+        
+        if(!HasToken(token)){return;}
+        std::cout << users_.at(token).name_ <<  " : " << message << '\n' ; 
+        
         for (auto &&[token, chatuser] : users_)
         {
             if (!Service::IsAliveSocket(chatuser.socket_))
             {
                 continue;
             }
-            net::post(chatuser.strand_, [&, buf = net::buffer(message) ]()
+            net::post(*chatuser.strand_, [&, buf = net::buffer(message) ]()
                       { users_.at(token).socket_->write_some(buf); });
         };
         // заканчиваем рассылку
         do_not_allow_modify_users = false;
         // оповещаем потоки
         cond_.notify_all();
-
         AwaitSocket(token);
     }
 

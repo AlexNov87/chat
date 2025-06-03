@@ -33,7 +33,7 @@
 #include <thread>
 #include <array>
 #include <optional>
-
+#include <deque>
 #include "const.h"
 
 namespace net = boost::asio;
@@ -42,6 +42,8 @@ using task = std::unordered_map<std::string, std::string>;
 using task_complex = std::vector<task>;
 using shared_socket = std::shared_ptr<tcp::socket>;
 using shared_task = std::shared_ptr<task>;
+using strand = boost::asio::strand<boost::asio::io_context::executor_type>;
+using shared_strand = std::shared_ptr<strand>;
 
 namespace Service
 {
@@ -147,10 +149,7 @@ namespace Service
     ///@brief Выключает сокет
     void ShutDownSocket(tcp::socket &sock);
     void ShutDownSocket(shared_socket sock);
-    
-    std::optional<std::string> GetTaskFromSocket(tcp::socket &socket); //уберется !!!!!!!!!!!!!!
-    task GetTaskFromBuffer(net::streambuf &buffer); //уберется!!!!!!!!!
-    
+        
     ///@brief Извлекает список полученыых обьектов из сокета
     std::vector<task> ExtractObjectsfromSocket(tcp::socket &socket);
     ///@brief Извлекает список полученыых обьектов из сокета в виде shared_ptr
@@ -161,6 +160,7 @@ namespace Service
    ///@brief Извлекает список полученыых обьектов из буфера в виде shared_ptr
     std::vector<shared_task>ExtractSharedObjectsfromBuffer(net::streambuf& buffer);
 
+    shared_strand MakeSharedStrand(net::io_context& ioc);
 }
 
 namespace ServiceChatroomServer

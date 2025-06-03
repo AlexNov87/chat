@@ -50,6 +50,10 @@ namespace Service
         }
         return strm.str();
     };
+
+     shared_strand MakeSharedStrand(net::io_context& ioc){
+        return std::make_shared<strand>(net::make_strand(ioc));
+    }
 }
 
 namespace Service
@@ -113,42 +117,6 @@ namespace Service
     {
         ShutDownSocket(*sock);
     };
-}
-
-namespace Service
-{
-    task ConstructTask(const char *data, size_t size)
-    {
-
-        std::string ln(data, size);
-
-        std::cout << "LN->" << ln << "<-\n";
-
-        auto lam = [&]()
-        {
-            task task =
-                Service::DeserializeUmap<std::string, std::string>(ln);
-            std::cout << "EXIT->\n";
-            return task;
-        };
-
-        return DoubleGuardedExcept<task>(lam, "CTASK");
-    }
-
-    task GetTaskFromBuffer(net::streambuf &buffer)
-    {
-        const char *data = boost::asio::buffer_cast<const char *>(buffer.data());
-        std::size_t size = buffer.size();
-        return ConstructTask(data, size);
-    }
-
-    task GetTaskFromBufferM(net::mutable_buffer &buffer)
-    {
-        const char *data = static_cast<const char *>(buffer.data());
-        std::size_t size = buffer.size();
-        return ConstructTask(data, size);
-    }
-
 }
 
 namespace Service
