@@ -1,5 +1,5 @@
 #include"srv.h"
-void MainServer::ServerSession::HandleSession(std::shared_ptr<tcp::socket> socket)
+void MainServer::ServerSession::HandleSession(shared_socket socket)
         {
             if (!Service::IsAliveSocket(*socket))
             {

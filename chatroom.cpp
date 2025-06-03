@@ -15,16 +15,25 @@ bool Chatroom::HasToken(const std::string &token)
         return has_token;
     }
 
-    void Chatroom::AwaitSocket(std::string& token)
+    void Chatroom::AwaitSocket(const std::string& token)
     {
-        auto& socket = users_.at(token).socket_;
+        auto socket = users_.at(token).socket_;
         try
         {
             boost::asio::streambuf buffer;
-            auto lam =  [&](boost::system::error_code ec, std::size_t length)
+            auto lam =  [&,socket](boost::system::error_code ec, std::size_t length)
                                           {
                                               if (!ec)
                                               {
+                                                         
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
+                                                  
                                                   //ЧИТАЕМ ЗАДАЧУ
                                                   auto task = Service::GetTaskFromBuffer(buffer);
                                                   //ПРОВЕРЯЕМ НАПРАВЛЕНИЕ ЗАДАЧИ (есть ли ошибка в поле "направление задачи")
@@ -49,7 +58,8 @@ bool Chatroom::HasToken(const std::string &token)
                                               AwaitSocket(token);
                                           };  
             
-            boost::asio::async_read_until(socket, buffer, '\0', lam);
+                                         net::async_read(*socket, buffer,  lam);
+
         }
         catch (const boost::system::system_error &err)
         {
@@ -69,11 +79,11 @@ bool Chatroom::HasToken(const std::string &token)
 
     
 
-    void Chatroom::AddUser(tcp::socket socket, std::string name, std::string token, std::string roomname)
+    void Chatroom::AddUser(shared_socket socket, std::string name, std::string token, std::string roomname)
     {
         auto lam = [&]()
         {
-            users_.insert({token, Chatuser(std::move(name), ioc_, std::move(socket))});
+            users_.insert({token, Chatuser(std::move(name), ioc_, socket)});
         };
         // Блокируем возможность слать по сокетам на время модификации списка юзеров
         MakeLockedModUsers(lam);
@@ -90,12 +100,12 @@ bool Chatroom::HasToken(const std::string &token)
         
         
         net::post(users_.at(token).strand_, [&, resp = std::move(responce)]()
-                  { users_.at(token).socket_.write_some(net::buffer(resp)); });
+                  { users_.at(token).socket_->write_some(net::buffer(resp));});
 
         AwaitSocket(token);
     }
 
-    void Chatroom::SendMessages(std::string token, std::string message)
+    void Chatroom::SendMessages(const std::string& token, const std::string& message)
     {
         // блокируем возможность подключение и удаления юзеров
         std::unique_lock<std::mutex> ul(mut_users);
@@ -109,7 +119,7 @@ bool Chatroom::HasToken(const std::string &token)
                 continue;
             }
             net::post(chatuser.strand_, [&, buf = net::buffer(message) ]()
-                      { users_.at(token).socket_.write_some(buf); });
+                      { users_.at(token).socket_->write_some(buf); });
         };
         // заканчиваем рассылку
         do_not_allow_modify_users = false;
@@ -119,7 +129,7 @@ bool Chatroom::HasToken(const std::string &token)
         AwaitSocket(token);
     }
 
-    void Chatroom::DeleteUser(std::string token)
+    void Chatroom::DeleteUser(const std::string& token)
     {
         auto lam = [&]()
         {
@@ -151,8 +161,4 @@ bool Chatroom::HasToken(const std::string &token)
         return oss.str(); 
     }
 
-    void Chatroom::HandleIncomeSocket(tcp::socket socket, task action)
-    {
-        ioc_.post([&]()
-                  { std::make_shared<ChatRoomSession>(this)->HandleTaskFromServer(action, std::move(socket)); });
-    }
+   

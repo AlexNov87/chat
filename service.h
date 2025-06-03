@@ -39,6 +39,9 @@
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
 using task = std::unordered_map<std::string, std::string>;
+using task_complex = std::vector<task>;
+using shared_socket = std::shared_ptr<tcp::socket>;
+using shared_task = std::shared_ptr<task>;
 
 namespace Service
 {
@@ -77,9 +80,9 @@ namespace Service
     {
         for (auto &&el : object)
         {
-           std::osyncstream(std::cout) << el.first << "->" << el.second << '\n';
+            std::osyncstream(std::cout) << el.first << "->" << el.second << '\n';
         };
-         std::osyncstream(std::cout)<<'\n';
+        std::osyncstream(std::cout) << '\n';
     }
 
     ///@brief Сериализатор Unordered_Map
@@ -104,7 +107,7 @@ namespace Service
         return umap;
     }
 
-    // Запускает контекст в многопоточном режиме
+    ///@brief Запускает контекст в многопоточном режиме
     void MtreadRunContext(net::io_context &ioc);
 
     class PassHasher
@@ -118,6 +121,7 @@ namespace Service
         }
     };
 
+    ///@brief Зашищает от исключений
     template <typename T, typename Foo>
     T DoubleGuardedExcept(Foo foo, std::string fooname, std::ostream &os = std::cout)
     {
@@ -135,31 +139,56 @@ namespace Service
         }
         return foo();
     }
-
-    void TrimContainer(task &action);
+    ///@brief Читает из файла в string
     std::string ReadFromFstream(std::ifstream &ifs);
+    ///@brief Проверяет жив ли сокет
     bool IsAliveSocket(tcp::socket &sock);
+    bool IsAliveSocket(shared_socket sock);
+    ///@brief Выключает сокет
     void ShutDownSocket(tcp::socket &sock);
-    std::optional<std::string> GetTaskFromSocket(tcp::socket &socket);
+    void ShutDownSocket(shared_socket sock);
+    
+    std::optional<std::string> GetTaskFromSocket(tcp::socket &socket); //уберется !!!!!!!!!!!!!!
+    task GetTaskFromBuffer(net::streambuf &buffer); //уберется!!!!!!!!!
+    
+    ///@brief Извлекает список полученыых обьектов из сокета
     std::vector<task> ExtractObjectsfromSocket(tcp::socket &socket);
-    task GetTaskFromBuffer(net::streambuf &buffer);
+    ///@brief Извлекает список полученыых обьектов из сокета в виде shared_ptr
+    std::vector<shared_task>ExtractSharedObjectsfromSocket(tcp::socket &socket);
+    
+    ///@brief Извлекает список полученыых обьектов из буфера
+    std::vector<task> ExtractObjectsfromBuffer(net::streambuf& buffer);
+   ///@brief Извлекает список полученыых обьектов из буфера в виде shared_ptr
+    std::vector<shared_task>ExtractSharedObjectsfromBuffer(net::streambuf& buffer);
+
 }
 
 namespace ServiceChatroomServer
 {
     std::optional<std::string> CHK_ServerLoadObject(const boost::json::value &obj);
+    ///@brief Создать о
     std::string MakeAnswerError(std::string reason, std::string initiator);
+    ///@brief  Написаить ошибку в сокет
     void WriteErrorToSocket(tcp::socket &socket, std::string reason, std::string initiator);
+    void WriteErrorToSocket(shared_socket socket, std::string reason, std::string initiator);
+    ///@brief Проверяет валидно ли поле "направление"
     std::optional<std::string> CHK_FieldDirectionIncorrect(const task &action);
+    ///@brief Проверяет валиден ли запрос к чатруму
     std::optional<std::string> CHK_Chr_CheckErrorsChatRoom(const task &action);
+    ///@brief Проверяет валиден ли запрос к серверу
     std::optional<std::string> CHK_Chr_CheckErrorsChatServer(const task &action);
 
+    ///@brief Успешное послание сообщения
     std::string Chr_MakeSuccessSendMessage();
-
+    ///@brief Успешное получение списка юзеров
     std::string Srv_MakeSuccessGetUsers(std::string userlist);
+    ///@brief Успешный вход в систему
     std::string Srv_MakeSuccessLogin(std::string token, std::string roomname);
+    ///@brief Успешное создание пользователя
     std::string Srv_MakeSuccessCreateUser(std::string name);
+    ///@brief Успешное создание комнаты
     std::string Srv_MakeSuccessCreateRoom(std::string name);
+    ///@brief Успешное получение списка комнат
     std::string Srv_MakeSuccessRoomList(std::string roomlist);
 
 }

@@ -22,6 +22,10 @@ namespace ServiceChatroomServer
             },
             "WriteErrorToSocket");
     };
+
+    void WriteErrorToSocket(shared_socket socket, std::string reason, std::string initiator){
+          WriteErrorToSocket(*socket, std::move(reason), std::move(initiator));
+    }
 }
 
 // SUCESS CHATROOM

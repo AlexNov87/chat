@@ -12,12 +12,12 @@ class Chatroom
 {
     struct Chatuser
     {
-        Chatuser(std::string name, net::io_context &ioc, tcp::socket socket) : name_(std::move(name)),
+        Chatuser(std::string name, net::io_context &ioc, shared_socket socket) : name_(std::move(name)),
                                                                                strand_(net::make_strand(ioc)),
-                                                                               socket_(std::move(socket)) {};
+                                                                               socket_(socket) {};
         std::string name_;
         boost::asio::strand<boost::asio::io_context::executor_type> strand_;
-        tcp::socket socket_;
+        shared_socket socket_;
     };
 
     class ChatRoomSession : public std::enable_shared_from_this<ChatRoomSession>
@@ -27,17 +27,17 @@ class Chatroom
     public:
         ChatRoomSession(Chatroom *chat) : chatroom_(chat) {};
 
-        void HandleExistingSocket(tcp::socket &socket, task task);
-        void HandleTaskFromServer(task action, tcp::socket socket);
+        void HandleExistingSocket(shared_socket socket, task action);
+        void HandleTaskFromServer(shared_socket socket, task action);
 
     private:
-        void HandleAction(task action, tcp::socket &socket);
+        void HandleAction(shared_socket socket, task action);
     };
 
 public:
     Chatroom(net::io_context &ioc) : ioc_(ioc) {}
 
-    void HandleIncomeSocket(tcp::socket socket, task action);
+   
 
 private:
     MainServer *mainserv_;
@@ -67,11 +67,11 @@ private:
         cond_.notify_all();
     }
     bool HasToken(const std::string &token);
-    void AwaitSocket(std::string &token);
+    void AwaitSocket(const std::string &token);
 
-    void AddUser(tcp::socket socket, std::string name, std::string token, std::string roomname);
-    void SendMessages(std::string token, std::string message);
-    void DeleteUser(std::string token);
+    void AddUser(shared_socket socket, std::string name, std::string token, std::string roomname);
+    void SendMessages(const std::string& token,const std::string& message);
+    void DeleteUser(const std::string& token);
     std::string RoomMembers();
 };
 
@@ -90,6 +90,10 @@ class MainServer
     class ServerSession : public std::enable_shared_from_this<ServerSession>
     {
         MainServer *server_;
+
+        void Execute(const task_complex& , shared_socket socket){
+
+        }
 
     public:
         ServerSession(MainServer *server) : server_(server) {}

@@ -11,7 +11,6 @@ find_package(Poco COMPONENTS Net Foundation REQUIRED)
 
 include(bst.cmake)
 
-
 set(service 
 const.h const.cpp
 service.h service.cpp 
