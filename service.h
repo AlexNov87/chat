@@ -8,6 +8,8 @@
 #include <boost/asio/streambuf.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/json.hpp>
+#include <boost/asio/write.hpp>
+#include <boost/asio.hpp>
 
 #include <boost/asio/strand.hpp>
 #include <boost/asio/post.hpp>
@@ -42,8 +44,16 @@ using task = std::unordered_map<std::string, std::string>;
 using task_complex = std::vector<task>;
 using shared_socket = std::shared_ptr<tcp::socket>;
 using shared_task = std::shared_ptr<task>;
+using shared_task_complex = std::vector<shared_task>;
 using strand = boost::asio::strand<boost::asio::io_context::executor_type>;
 using shared_strand = std::shared_ptr<strand>;
+using err = boost::system::error_code;
+
+template<typename... Args>
+void ZyncPrint(Args... args){
+  auto st = std::osyncstream(std::cout);
+  (... , (st << args << '\n'));
+}
 
 namespace Service
 {
@@ -78,14 +88,40 @@ namespace Service
 
     ///@brief Печать Unordered_Map
     template <typename T1, typename T2>
-    void PrintUmap(std::unordered_map<T1, T2> object)
+    void PrintUmap(std::unordered_map<T1, T2> object, std::ostream& os = std::cout)
     {
         for (auto &&el : object)
         {
-            std::osyncstream(std::cout) << el.first << "->" << el.second << '\n';
+            std::osyncstream(os) << el.first << "->" << el.second << '\n';
         };
-        std::osyncstream(std::cout) << '\n';
+        std::osyncstream(os) << '\n';
     }
+
+     ///@brief Печать Unordered_Map
+    template <typename T1, typename T2>
+    void PrintUmapF(std::unordered_map<T1, T2> object, std::ofstream& os)
+    {
+        for (auto &&el : object)
+        {
+            os << el.first << "->" << el.second << '\n';
+        };
+        os << '\n';
+    }
+
+
+
+    struct MutableBufferHolder {
+    MutableBufferHolder()
+        : data(std::make_shared<std::array<char, 2048>>()),
+          buffer(data->data(), data->size())
+    {}
+    net::mutable_buffer& UseBuffer(){
+        return buffer;
+    }
+    private:
+    std::shared_ptr<std::array<char, 2048>> data;
+    net::mutable_buffer buffer;
+    };
 
     ///@brief Сериализатор Unordered_Map
     template <typename T1, typename T2>
@@ -94,6 +130,7 @@ namespace Service
         std::ostringstream strm;
         boost::archive::text_oarchive arch(strm);
         arch << object;
+        std::string st = strm.str();
         strm << '\0';
         return strm.str();
     }
@@ -150,17 +187,19 @@ namespace Service
     void ShutDownSocket(tcp::socket &sock);
     void ShutDownSocket(shared_socket sock);
 
-    ///@brief Извлекает список полученыых обьектов из сокета
-    std::vector<task> ExtractObjectsfromSocket(tcp::socket &socket);
-    ///@brief Извлекает список полученыых обьектов из сокета в виде shared_ptr
-    std::vector<shared_task> ExtractSharedObjectsfromSocket(tcp::socket &socket);
-
     ///@brief Извлекает список полученыых обьектов из буфера
     std::vector<task> ExtractObjectsfromBuffer(net::streambuf &buffer);
     ///@brief Извлекает список полученыых обьектов из буфера в виде shared_ptr
     std::vector<shared_task> ExtractSharedObjectsfromBuffer(net::streambuf &buffer);
 
     shared_strand MakeSharedStrand(net::io_context &ioc);
+    template<typename T>
+    shared_socket MakeSharedSocket(T& executor){
+        return std::make_shared<tcp::socket>(executor); 
+    }
+
+    std::shared_ptr<MutableBufferHolder> MakeSharedMutableGuffer();
+    std::shared_ptr<net::streambuf> MakeSharedStreambuf();
 }
 
 namespace ServiceChatroomServer

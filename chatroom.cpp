@@ -42,7 +42,7 @@ bool Chatroom::HasToken(const std::string &token)
                                                        chrsess->HandleExistingSocket(socket, action);
                                                     }
                                                     //ЕСЛИ ЗАДАЧА ОТНОСИТСЯ К CЕРВЕРУ
-                                                    auto servsessptr = std::make_shared<MainServer::ServerSession>(this->mainserv_);
+                                                    auto servsessptr = std::make_shared<MainServer::ServerSession>(this->mainserv_, socket);
                                                     servsessptr->HandleExistsSocket(action ,this->users_.at(token));  
                                                   }
                                               }

@@ -3,6 +3,7 @@ using namespace std;
 
 namespace Service
 {
+
     const std::unordered_map<std::string, ACTION> Additional::action_scernario{
         {CONSTANTS::ACT_CREATE_ROOM, ACTION::CREATE_ROOM},
         {CONSTANTS::ACT_CREATE_USER, ACTION::CREATE_USER},
@@ -51,9 +52,19 @@ namespace Service
         return strm.str();
     };
 
-     shared_strand MakeSharedStrand(net::io_context& ioc){
+    shared_strand MakeSharedStrand(net::io_context &ioc)
+    {
         return std::make_shared<strand>(net::make_strand(ioc));
     }
+    std::shared_ptr<MutableBufferHolder> MakeSharedMutableGuffer()
+    {
+       return std::shared_ptr<Service::MutableBufferHolder>();
+    };
+    std::shared_ptr<net::streambuf> MakeSharedStreambuf()
+    {
+        return std::make_shared<net::streambuf>();
+    };
+
 }
 
 namespace Service
@@ -128,29 +139,6 @@ namespace Service
         return std::string(data, buffer.size());
     }
 
-    std::optional<std::string> GetTaskFromSocket(tcp::socket &socket)
-    {
-        boost::system::error_code ec;
-        if (!Service::IsAliveSocket(socket))
-        {
-            // std::cerr << "THE SOCKET IS NOT ALIVE FOO\n";
-            return std::nullopt;
-        }
-        net::streambuf buffer;
-        auto sym_read = net::read(socket, buffer, ec);
-        if (sym_read == 0)
-        {
-            return std::nullopt;
-        }
-        if (ec && ec != net::error::eof)
-        {
-            // std::cout << "RETURNING GLOBAL EWRROR\n";
-            std::cout << ec.what() << '\n';
-            return std::nullopt;
-        }
-        return ExtractStrFromStreambuf(buffer);
-    }
-
     std::vector<task> ExtractObjectsFromStream(std::stringstream &strm)
     {
 
@@ -195,26 +183,6 @@ namespace Service
     {
         std::stringstream strm(ExtractStrFromStreambuf(buffer));
         return ExtractSharedObjectsFromStream(strm);
-    };
-
-    std::vector<task> ExtractObjectsfromSocket(tcp::socket &socket)
-    {
-        std::stringstream oss;
-        while (auto action = Service::GetTaskFromSocket(socket))
-        {
-            oss << *action;
-        };
-        return ExtractObjectsFromStream(oss);
-    };
-
-    std::vector<shared_task> ExtractSharedObjectsfromSocket(tcp::socket &socket)
-    {
-        std::stringstream oss;
-        while (auto action = Service::GetTaskFromSocket(socket))
-        {
-            oss << *action;
-        };
-        return ExtractSharedObjectsFromStream(oss);
     };
 
 }

@@ -19,6 +19,8 @@ tokenizer.h tokenizer.cpp
 service_action_check.cpp
 server_responce.cpp
 server_session.cpp
+connection.h
+connection.cpp
 )
 
 set(u

@@ -52,7 +52,7 @@ private:
     void MakeLockedModUsers(Foo foo)
     {
         // Блокируем возможность рассылки по сокетам на время модификации списка
-        std::unique_lock<std::mutex> ul(mut_users);
+        std::unique_lock<std::mutex> ul(mut_users_);
         modyfiing_users = true;
         cond_.wait(ul, [&]()
                    { return do_not_allow_modify_users == false; });
@@ -86,16 +86,22 @@ class MainServer
     class ServerSession : public std::enable_shared_from_this<ServerSession>
     {
         MainServer *server_;
-
-        void Execute(const task_complex &, shared_socket socket)
+        shared_socket socket_;
+        net::streambuf readbuf_;
+        shared_strand strand_;
+        
+        void ExecuteTask(shared_task action)
         {
+          ExectuteReadySession(action, socket_, strand_);     
         }
 
-        //  void ExectuteReadySession(shared_socket socket, shared_task action,   )
+        void ExectuteReadySession(shared_task action, shared_socket socket, shared_strand  strand){
+                
+        }
 
     public:
-        ServerSession(MainServer *server) : server_(server) {}
-        void HandleSession(shared_socket socket);
+        ServerSession(MainServer *server, shared_socket socket) : server_(server) , socket_(socket) {}
+        void HandleSession();
 
         void HandleExistsSocket(shared_task action, Chatroom::Chatuser &chatuser) {
 
