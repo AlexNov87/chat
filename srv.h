@@ -89,18 +89,26 @@ class MainServer
         shared_socket socket_;
         net::streambuf readbuf_;
         shared_strand strand_;
-        
+        std::atomic_bool condition = true;
+        net::steady_timer timer_{server_->ioc_};
+
         void ExecuteTask(shared_task action)
         {
-          ExectuteReadySession(action, socket_, strand_);     
+            ExectuteReadySession(action, socket_, strand_);
         }
 
-        void ExectuteReadySession(shared_task action, shared_socket socket, shared_strand  strand){
-                
+        void ExectuteReadySession(shared_task action, shared_socket socket, shared_strand strand)
+        {
+
+            ZyncPrint("EXECUTE READY............");
+            auto self = this->shared_from_this();
+            net::async_write(*socket_,
+                             net::buffer(ServiceChatroomServer::MakeAnswerError("TESTR", " TESTR")), [self](err ec, size_t bytes)
+                             { self->HandleSession(); });
         }
 
     public:
-        ServerSession(MainServer *server, shared_socket socket) : server_(server) , socket_(socket) {}
+        ServerSession(MainServer *server, shared_socket socket) : server_(server), socket_(socket) {}
         void HandleSession();
 
         void HandleExistsSocket(shared_task action, Chatroom::Chatuser &chatuser) {

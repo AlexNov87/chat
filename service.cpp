@@ -23,6 +23,8 @@ namespace Service
     const std::unordered_set<std::string> Service::Additional::request_directions{
         CONSTANTS::RF_DIRECTION_SERVER, CONSTANTS::RF_DIRECTION_CHATROOM};
 
+        std::mutex Service::Additional::mtx;
+
     void MtreadRunContext(net::io_context &ioc)
     {
         std::vector<jthread> run;
@@ -132,57 +134,23 @@ namespace Service
 
 namespace Service
 {
-    std::string ExtractStrFromStreambuf(net::streambuf &buffer)
+    std::string ExtractStrFromStreambuf(net::streambuf &buffer, size_t extract)
     {
         const char *data = boost::asio::buffer_cast<const char *>(buffer.data());
-        std::size_t size = buffer.size();
-        return std::string(data, buffer.size());
+        return std::string(data, extract);
     }
 
-    std::vector<task> ExtractObjectsFromStream(std::stringstream &strm)
-    {
+    
 
-        std::vector<task> tasks;
-        while (strm)
-        {
-            std::string tmp;
-            std::getline(strm, tmp, '\0');
-            if (tmp.empty())
-            {
-                break;
-            }
-            auto task = Service::DeserializeUmap<std::string, std::string>(std::move(tmp));
-            tasks.push_back(std::move(task));
-        };
-        return tasks;
-    }
-
-    std::vector<shared_task> ExtractSharedObjectsFromStream(std::stringstream &strm)
+    task ExtractObjectsfromBuffer(net::streambuf &buffer, size_t extract)
     {
-        std::vector<shared_task> tasks;
-        while (strm)
-        {
-            std::string tmp;
-            std::getline(strm, tmp, '\0');
-            if (tmp.empty())
-            {
-                break;
-            }
-            auto action = std::make_shared<task>(Service::DeserializeUmap<std::string, std::string>(std::move(tmp)));
-            tasks.push_back(std::move(action));
-        };
-        return tasks;
-    }
-
-    std::vector<task> ExtractObjectsfromBuffer(net::streambuf &buffer)
-    {
-        std::stringstream strm(ExtractStrFromStreambuf(buffer));
-        return ExtractObjectsFromStream(strm);
+        std::string str(ExtractStrFromStreambuf(buffer, extract));
+        return DeserializeUmap<std::string,std::string>(str);
     };
-    std::vector<shared_task> ExtractSharedObjectsfromBuffer(net::streambuf &buffer)
+    shared_task ExtractSharedObjectsfromBuffer(net::streambuf &buffer, size_t extract)
     {
-        std::stringstream strm(ExtractStrFromStreambuf(buffer));
-        return ExtractSharedObjectsFromStream(strm);
+        std::string str(ExtractStrFromStreambuf(buffer, extract));
+        return std::make_shared<task>(DeserializeUmap<std::string,std::string>(str));
     };
 
 }

@@ -21,15 +21,12 @@ bool Chatroom::HasToken(const std::string &token)
         try
         {
             boost::asio::streambuf buffer;
-            auto lam =  [&,socket](boost::system::error_code ec, std::size_t length)
+            auto lam =  [&,socket](boost::system::error_code ec, std::size_t bytes)
                                           {
                                               if (!ec)
                                               {
-                                                auto actions = Service::ExtractSharedObjectsfromBuffer(buffer);
+                                                auto action = Service::ExtractSharedObjectsfromBuffer(buffer,bytes );
                                                   
-                                                  
-                                                  for (auto action : actions){
-                                                
                                                   //ПРОВЕРЯЕМ НАПРАВЛЕНИЕ ЗАДАЧИ (есть ли ошибка в поле "направление задачи")
                                                   auto direction_err = ServiceChatroomServer::CHK_FieldDirectionIncorrect(*action);
                                                   if(direction_err){
@@ -44,7 +41,7 @@ bool Chatroom::HasToken(const std::string &token)
                                                     //ЕСЛИ ЗАДАЧА ОТНОСИТСЯ К CЕРВЕРУ
                                                     auto servsessptr = std::make_shared<MainServer::ServerSession>(this->mainserv_, socket);
                                                     servsessptr->HandleExistsSocket(action ,this->users_.at(token));  
-                                                  }
+                                                  
                                               }
                                               else
                                               {

@@ -6,13 +6,14 @@
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
 
-std::shared_ptr<std::ofstream> ofs = std::make_shared<std::ofstream>("log!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!.txt");
+std::shared_ptr<std::ofstream> ofs = std::make_shared<std::ofstream>("log!.txt");
+
 net::io_context ioc(16);
 
-shared_strand strand__ = Service::MakeSharedStrand(ioc);
 shared_socket socket__ = Service::MakeSharedSocket(ioc);
 boost::system::error_code ec;
 auto endpoint = tcp::endpoint(net::ip::make_address("127.0.0.1"), 80);
+std::mutex mtx;
 
 void InitSocket(){
   socket__->open(endpoint.protocol(), ec);
@@ -34,7 +35,6 @@ void InitSocket(){
     }
 }
 
-
 std::shared_ptr<std::vector<std::string>> GetStringValues()
 {
   Service::TokenGen gen;
@@ -51,28 +51,22 @@ std::shared_ptr<std::vector<std::string>> GetStringValues()
   return std::make_shared<std::vector<std::string>>(std::move(objs));
 }
 
-void Read(std::shared_ptr<net::streambuf> sb, shared_socket socket)
+void Read()
 {
-
-  auto handler = [sb, socket](err ec, size_t bytes)
+  auto sb = Service::MakeSharedStreambuf();
+  auto handler = [sb](err ec, size_t bytes)
   {
     if (ec)
     {
       ZyncPrint(ec.what());
-      system("pause");
       return;
+      socket__->close();
     }
-
-    auto actions = Service::ExtractObjectsfromBuffer(*sb);
-    for(auto&& i : actions){
-       Service::PrintUmap(i);
-    }
-
-    sb->consume(bytes);
-    Read(sb, socket);
-
+    auto i = Service::ExtractObjectsfromBuffer(*sb,bytes);
+    Service::PrintUmap(i);
+  
   };
-  net::async_read_until(*socket__, *sb, '\0', handler);
+  net::async_read_until(*socket__, *sb, '\n', handler);
 }
 
 void test1()
@@ -80,32 +74,30 @@ void test1()
 
   try
   {
+
     auto values = GetStringValues();
     for (auto &&str : *values)
     {
-      net::async_write(*socket__, net::buffer(str), [](err ec, size_t bytes) {
-
-      });
+      net::write(*socket__, net::buffer(str));
+       
     }
 
   }
   catch (const std::exception &ex)
   {
     std::cout << ex.what();
-    system("pause");
   }
 }
 
 int main()
 {
+   InitSocket();  // сначала подключаемся
+   Read();        // затем запускаем чтение
   
-  InitSocket();
-  auto sb = Service::MakeSharedStreambuf();
-  Read(sb, socket__);
-  
-  for (int i = 0; i < 1; ++i)
+  for (int i = 0; i < 2; ++i)
   {
-     net::post(ioc,[]{test1();});
+     test1();
   }
+  //запуск ioc
   Service::MtreadRunContext(ioc);
 }

@@ -44,7 +44,6 @@ using task = std::unordered_map<std::string, std::string>;
 using task_complex = std::vector<task>;
 using shared_socket = std::shared_ptr<tcp::socket>;
 using shared_task = std::shared_ptr<task>;
-using shared_task_complex = std::vector<shared_task>;
 using strand = boost::asio::strand<boost::asio::io_context::executor_type>;
 using shared_strand = std::shared_ptr<strand>;
 using err = boost::system::error_code;
@@ -78,6 +77,7 @@ namespace Service
         static const std::unordered_set<std::string> chatroom_actions;
         static const std::unordered_set<std::string> server_actions;
         static const std::unordered_set<std::string> request_directions;
+        static std::mutex mtx;
     };
 
     enum class COMED_FROM
@@ -90,6 +90,7 @@ namespace Service
     template <typename T1, typename T2>
     void PrintUmap(std::unordered_map<T1, T2> object, std::ostream& os = std::cout)
     {
+        std::lock_guard<std::mutex> lg(Additional::mtx);
         for (auto &&el : object)
         {
             std::osyncstream(os) << el.first << "->" << el.second << '\n';
@@ -131,7 +132,7 @@ namespace Service
         boost::archive::text_oarchive arch(strm);
         arch << object;
         std::string st = strm.str();
-        strm << '\0';
+        strm << '\n';
         return strm.str();
     }
 
@@ -188,9 +189,9 @@ namespace Service
     void ShutDownSocket(shared_socket sock);
 
     ///@brief Извлекает список полученыых обьектов из буфера
-    std::vector<task> ExtractObjectsfromBuffer(net::streambuf &buffer);
+    task ExtractObjectsfromBuffer(net::streambuf &buffer, size_t extract);
     ///@brief Извлекает список полученыых обьектов из буфера в виде shared_ptr
-    std::vector<shared_task> ExtractSharedObjectsfromBuffer(net::streambuf &buffer);
+    shared_task ExtractSharedObjectsfromBuffer(net::streambuf &buffer, size_t extract);
 
     shared_strand MakeSharedStrand(net::io_context &ioc);
     template<typename T>
