@@ -80,7 +80,7 @@ void test1()
     {
     
       net::async_write(*socket__, net::buffer(str), [](err ec, size_t bytes){
-             
+                  
       });
       
       
