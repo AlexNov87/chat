@@ -27,7 +27,7 @@ user_foo.cpp
 
 set(cliserv 
 srv.h chatroom.cpp 
-chatroomsess.cpp maisservsess.cpp
+chatroomsess.cpp 
 mainserv.cpp
 )
 

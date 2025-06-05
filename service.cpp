@@ -137,7 +137,9 @@ namespace Service
     std::string ExtractStrFromStreambuf(net::streambuf &buffer, size_t extract)
     {
         const char *data = boost::asio::buffer_cast<const char *>(buffer.data());
-        return std::string(data, extract);
+        std::string str(data, extract);
+        boost::algorithm::trim(str);
+        return str;
     }
 
     

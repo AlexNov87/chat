@@ -50,6 +50,9 @@ std::shared_ptr<std::vector<std::string>> GetStringValues()
   };
   return std::make_shared<std::vector<std::string>>(std::move(objs));
 }
+std::atomic_int cnt;
+auto values = GetStringValues();
+
 
 void Read()
 {
@@ -63,8 +66,14 @@ void Read()
       return;
       
     }
+    
+    //ZyncPrint("->" + Service::ExtractStrFromStreambuf(*sb, bytes) + "<-");
     auto i = Service::ExtractObjectsfromBuffer(*sb,bytes);
     Service::PrintUmap(i, *ofs);
+    sb->consume(bytes);
+   
+    
+   
   };
   net::async_read_until(*socket__, *sb, CONSTANTS::SERIAL_SYM , handler);
 }
@@ -75,14 +84,14 @@ void test1()
   try
   {
     auto buf = Service::MakeSharedStreambuf(); 
-    auto values = GetStringValues();
+    
     for (auto &&str : *values)
     {
     
       net::async_write(*socket__, net::buffer(str), [](err ec, size_t bytes){
-                  
+                  Read();
       });
-      
+     
       
     }
 
@@ -102,9 +111,7 @@ int main()
   
   for (int i = 0; i < 2;)
   {
-    test1();
-    Read();
-    
+    test1();    
   }
   //запуск ioc
   Service::MtreadRunContext(ioc);

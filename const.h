@@ -42,23 +42,6 @@ struct CONSTANTS
     static const std::string PORT; 
     static const std::string CHATROOMS; 
 
-    ///@brief Размер объекта действия отключения
-    static const size_t N_DISCONNECT;
-    ///@brief Размер объекта действия послания сообщения
-    static const size_t N_SEND_MESSAGE;
-
-    
-    ///@brief Размер объекта действия для получения списка пользователей
-    static const size_t N_GET_USERS;
-    ///@brief Размер объекта действия логина
-    static const size_t N_LOGIN;
-    ///@brief Размер объекта действия создания комнаты
-    static const size_t N_CREATE_ROOM;
-    ///@brief Размер объекта действия список комнат
-    static const size_t N_ROOM_LIST;
-    ///@brief Размер объекта действия =регистрация юзера
-    static const size_t N_CREATE_USER;
-
     ///@brief Длина токена
     static const size_t N_TOKEN_LEN;
     ///@brief

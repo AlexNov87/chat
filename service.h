@@ -189,6 +189,7 @@ namespace Service
     task ExtractObjectsfromBuffer(net::streambuf &buffer, size_t extract);
     ///@brief Извлекает список полученыых обьектов из буфера в виде shared_ptr
     shared_task ExtractSharedObjectsfromBuffer(net::streambuf &buffer, size_t extract);
+    std::string ExtractStrFromStreambuf(net::streambuf &buffer, size_t extract);
 
     shared_strand MakeSharedStrand(net::io_context &ioc);
     template<typename T>

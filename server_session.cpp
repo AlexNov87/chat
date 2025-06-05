@@ -20,9 +20,10 @@ void AbstractSession::HandleSession()
                     net::async_write(*(self->socket_), 
                     net::buffer(responce),[self](err ec, size_t bytes){
                         if(!ec){
-                          net::post(*self->strand_,[self]{ self->HandleSession();});
+                          net::dispatch(*self->strand_,[self]{ self->HandleSession();});
                         }
                     });}
+
                     });
 
     return;
