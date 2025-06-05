@@ -118,17 +118,8 @@ class MainServer
         return true;
     }
     
-    void CreateRoom(std::string room)
-    {
-       auto lam = [&]{ rooms_[room] = std::make_shared<Chatroom>(this->ioc_);};
-       AvoidModUsers(lam);
-    }
-
-    void AddUserToRoom(shared_socket socket, const std::string &name, const std::string token, const std::string &roomname)
-    {
-        auto room = rooms_.at(roomname);
-        room->AddUser(socket, name, token);
-    }
+    void CreateRoom(std::string room);
+    void AddUserToRoom(shared_socket socket, const std::string &name, const std::string token, const std::string &roomname);
 
     class ServerSession : public AbstractSession
     {

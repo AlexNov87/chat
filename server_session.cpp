@@ -2,6 +2,8 @@
 
 std::string MainServer::ServerSession::LoginUser(shared_task action, shared_socket socket)
 {
+    try{
+
     // ЕСЛИ АВТОРИЗОВАН
     const auto &name = action->at(CONSTANTS::LF_NAME);
     const auto &pass = action->at(CONSTANTS::LF_PASSWORD);
@@ -40,6 +42,10 @@ std::string MainServer::ServerSession::LoginUser(shared_task action, shared_sock
         return ServiceChatroomServer::Srv_MakeSuccessLogin(std::move(token), std::move(roomname), room->msg_man_.LastMessages());
     }
     return ServiceChatroomServer::MakeAnswerError("FAILED TO ADD USER", __func__);
+    }
+    catch(const std::exception&ex){
+        return ServiceChatroomServer::MakeAnswerError( ex.what() , __func__);
+    }
 }
 
 std::string MainServer::ServerSession::GetStringResponceToSocket(shared_task action)

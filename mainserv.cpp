@@ -80,3 +80,19 @@ void MainServer::PrintRooms()
         std::cout << room.first << " members:" << room.second->users_.size() << '\n';
     }
 }
+
+void MainServer::CreateRoom(std::string room)
+{
+    auto lam = [&]
+    { rooms_[room] = std::make_shared<Chatroom>(this->ioc_); };
+    AvoidModUsers(lam);
+}
+
+void MainServer::AddUserToRoom(shared_socket socket, const std::string &name, const std::string token, const std::string &roomname)
+{
+    auto lam = [&, socket]
+    {
+        auto room = rooms_.at(roomname);
+        room->AddUser(socket, name, token); };
+    AvoidModUsers(lam);
+}
