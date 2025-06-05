@@ -54,3 +54,4 @@ const size_t CONSTANTS::N_LOGIN = 6;   // direction, action, roomname, username,
 const size_t CONSTANTS::N_CREATE_ROOM = 0; // direction, action,
 const size_t CONSTANTS::N_ROOM_LIST = 2;   // direction, action,
 const size_t CONSTANTS::N_CREATE_USER = 0; // direction, action,
+const char CONSTANTS::SERIAL_SYM = '\n';

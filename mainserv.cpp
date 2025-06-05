@@ -61,7 +61,9 @@ void MainServer::Listen()
               std::cout << ec.value() << "  " << ec.message() << '\n' <<
               ec.what() << '\n';
             }                                           
-             std::shared_ptr<ServerSession> servsess = std::make_shared<ServerSession>(this, std::make_shared<tcp::socket>(std::move(socket))); 
+             std::shared_ptr<ServerSession> servsess = std::make_shared<ServerSession>
+             (this, std::make_shared<tcp::socket>(std::move(socket)),
+               Service::MakeSharedStrand(this->ioc_)); 
              servsess->HandleSession();
              Listen(); 
         });

@@ -64,6 +64,8 @@ struct CONSTANTS
     ///@brief
     static const size_t N_MAX_MESSAGE_LEN;
 
+    static const char SERIAL_SYM;
+
 private:
     CONSTANTS() {};
 };

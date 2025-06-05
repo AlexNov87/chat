@@ -5,6 +5,30 @@
 
 class MainServer;
 
+class AbstractSession : public std::enable_shared_from_this<AbstractSession> {
+protected:
+virtual void ExecuteTask(shared_task action) = 0;
+AbstractSession(net::io_context& ioc, shared_strand strand, shared_socket& socket):
+timer_{ioc}, strand_(strand), socket_(socket) {} 
+protected:   
+        shared_socket socket_;
+        net::streambuf readbuf_;
+        shared_strand strand_;
+        std::atomic_bool condition = true;
+        net::steady_timer timer_;
+
+virtual std::string GetStringResponceToSocket(shared_task action){
+         return ServiceChatroomServer::MakeAnswerError("TESTR"," TESTR");
+};
+public:
+void HandleSession();
+
+
+};
+
+
+
+
 class Chatroom
 {
     struct Chatuser
@@ -75,6 +99,7 @@ class MainServer
 {
     friend class Chatroom;
     friend class ServerSession;
+    friend class AbstactSession;
 
     net::io_context &ioc_;
     tcp::acceptor acceptor_;
@@ -83,14 +108,10 @@ class MainServer
     bool is_first_run_ = true;
     std::unordered_map<std::string, std::shared_ptr<Chatroom>> rooms_;
 
-    class ServerSession : public std::enable_shared_from_this<ServerSession>
+    class ServerSession : public AbstractSession
     {
         MainServer *server_;
-        shared_socket socket_;
-        net::streambuf readbuf_;
-        shared_strand strand_;
-        std::atomic_bool condition = true;
-        net::steady_timer timer_{server_->ioc_};
+        
 
         void ExecuteTask(shared_task action)
         {
@@ -102,14 +123,15 @@ class MainServer
 
             ZyncPrint("EXECUTE READY............");
             auto self = this->shared_from_this();
-            net::async_write(*socket_,
-                             net::buffer(ServiceChatroomServer::MakeAnswerError("TESTR", " TESTR")), [self](err ec, size_t bytes)
-                             { self->HandleSession(); });
+            // net::async_write(*socket_,
+            //                  net::buffer(ServiceChatroomServer::MakeAnswerError("TESTR", " TESTR")), [self](err ec, size_t bytes)
+            //                  { self->HandleSession(); });
         }
 
     public:
-        ServerSession(MainServer *server, shared_socket socket) : server_(server), socket_(socket) {}
-        void HandleSession();
+        ServerSession(MainServer *server, shared_socket socket, shared_strand strand) 
+    : AbstractSession(server->ioc_, strand, socket), server_(server) {};
+      
 
         void HandleExistsSocket(shared_task action, Chatroom::Chatuser &chatuser) {
 

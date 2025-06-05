@@ -6,10 +6,10 @@
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
 
-std::shared_ptr<std::ofstream> ofs = std::make_shared<std::ofstream>("log!.txt");
+std::shared_ptr<std::ofstream> ofs = std::make_shared<std::ofstream>("log!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!.txt");
 
 net::io_context ioc(16);
-
+shared_strand strand__ = Service::MakeSharedStrand(ioc);
 shared_socket socket__ = Service::MakeSharedSocket(ioc);
 boost::system::error_code ec;
 auto endpoint = tcp::endpoint(net::ip::make_address("127.0.0.1"), 80);
@@ -59,14 +59,14 @@ void Read()
     if (ec)
     {
       ZyncPrint(ec.what());
+      system("pause");
       return;
-      socket__->close();
+      
     }
     auto i = Service::ExtractObjectsfromBuffer(*sb,bytes);
-    Service::PrintUmap(i);
-  
+    Service::PrintUmap(i, *ofs);
   };
-  net::async_read_until(*socket__, *sb, '\n', handler);
+  net::async_read_until(*socket__, *sb, CONSTANTS::SERIAL_SYM , handler);
 }
 
 void test1()
@@ -74,29 +74,37 @@ void test1()
 
   try
   {
-
+    auto buf = Service::MakeSharedStreambuf(); 
     auto values = GetStringValues();
     for (auto &&str : *values)
     {
-      net::write(*socket__, net::buffer(str));
-       
+    
+      net::async_write(*socket__, net::buffer(str), [](err ec, size_t bytes){
+             
+      });
+      
+      
     }
 
   }
   catch (const std::exception &ex)
   {
     std::cout << ex.what();
+    system("pause");
   }
 }
 
 int main()
 {
    InitSocket();  // сначала подключаемся
-   Read();        // затем запускаем чтение
+   Read();       // затем запускаем чтение
   
-  for (int i = 0; i < 2; ++i)
+  
+  for (int i = 0; i < 2;)
   {
-     test1();
+    test1();
+    Read();
+    
   }
   //запуск ioc
   Service::MtreadRunContext(ioc);

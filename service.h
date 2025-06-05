@@ -108,9 +108,6 @@ namespace Service
         };
         os << '\n';
     }
-
-
-
     struct MutableBufferHolder {
     MutableBufferHolder()
         : data(std::make_shared<std::array<char, 2048>>()),
@@ -132,7 +129,7 @@ namespace Service
         boost::archive::text_oarchive arch(strm);
         arch << object;
         std::string st = strm.str();
-        strm << '\n';
+        strm << CONSTANTS::SERIAL_SYM;
         return strm.str();
     }
 

@@ -18,6 +18,7 @@ bool Chatroom::HasToken(const std::string &token)
     void Chatroom::AwaitSocket(const std::string& token)
     {
         auto socket = users_.at(token).socket_;
+        auto strand = users_.at(token).strand_;
         try
         {
             boost::asio::streambuf buffer;
@@ -39,7 +40,7 @@ bool Chatroom::HasToken(const std::string &token)
                                                        chrsess->HandleExistingSocket(socket, action);
                                                     }
                                                     //ЕСЛИ ЗАДАЧА ОТНОСИТСЯ К CЕРВЕРУ
-                                                    auto servsessptr = std::make_shared<MainServer::ServerSession>(this->mainserv_, socket);
+                                                    auto servsessptr = std::make_shared<MainServer::ServerSession>(this->mainserv_, socket, strand);
                                                     servsessptr->HandleExistsSocket(action ,this->users_.at(token));  
                                                   
                                               }
