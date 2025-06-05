@@ -24,6 +24,7 @@ struct CONSTANTS
     static const std::string LF_LOGIN;
     static const std::string LF_ROOMLIST;
     static const std::string LF_PASSWORD;
+    static const std::string LF_LAST_MSG;
 
     static const std::string RF_SUCCESS;
     static const std::string RF_ERROR;

@@ -21,6 +21,7 @@ const std::string CONSTANTS::LF_ROOMNAME = "ROOMNAME";
 const std::string CONSTANTS::LF_LOGIN = "LOGIN";
 const std::string CONSTANTS::LF_ROOMLIST = "ROOMLIST";
 const std::string CONSTANTS::LF_PASSWORD = "PASSWORD";
+const std::string CONSTANTS::LF_LAST_MSG = "LF_LAST_MSG"; 
 
 const std::string CONSTANTS::RF_SUCCESS = "SUCCESS";
 const std::string CONSTANTS::RF_ERROR = "ERROR";
@@ -42,4 +43,4 @@ const std::string CONSTANTS::CHATROOMS = "CHATROOMS";
 const size_t CONSTANTS::N_TOKEN_LEN = 32;
 const size_t CONSTANTS::N_MAX_MESSAGE_LEN = 512;
 
-const char CONSTANTS::SERIAL_SYM = '\n';
+const char CONSTANTS::SERIAL_SYM = '\0';

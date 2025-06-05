@@ -8,20 +8,17 @@ class MainServer;
 class AbstractSession : public std::enable_shared_from_this<AbstractSession>
 {
 protected:
-    virtual void ExecuteTask(shared_task action) = 0;
-    AbstractSession(net::io_context &ioc, shared_strand strand, shared_socket &socket) : timer_{ioc}, strand_(strand), socket_(socket) {}
-
-protected:
+    AbstractSession(net::io_context &ioc, shared_strand strand, shared_socket &socket)
+        : timer_{ioc}, strand_(strand), socket_(socket) {}
     shared_socket socket_;
     net::streambuf readbuf_;
     shared_strand strand_;
     std::atomic_bool condition = true;
     net::steady_timer timer_;
-
     virtual std::string GetStringResponceToSocket(shared_task action) = 0;
 
 public:
-    void HandleSession();
+    void HandleSession(bool need_check = true);
 };
 
 class Chatroom
@@ -36,24 +33,19 @@ class Chatroom
         shared_socket socket_;
     };
 
-    class ChatRoomSession : public std::enable_shared_from_this<ChatRoomSession>
+    class ChatRoomSession : public AbstractSession
     {
         Chatroom *chatroom_ = nullptr;
 
     public:
-        ChatRoomSession(Chatroom *chat) : chatroom_(chat) {};
-
-        void HandleExistingSocket(shared_socket socket, shared_task action);
-        void HandleTaskFromServer(shared_socket socket, shared_task action);
+        ChatRoomSession(Chatroom *chat, shared_socket socket, shared_strand strand)
+            : AbstractSession(chat->ioc_, strand, socket), chatroom_(chat) {};
+        std::string GetStringResponceToSocket(shared_task action) override;
 
     private:
-        void HandleAction(shared_socket socket, shared_task action);
+        std::string HandleAction(shared_task action);
     };
 
-public:
-    Chatroom(net::io_context &ioc) : ioc_(ioc) {}
-
-private:
     friend class MainServer;
     friend class ChatRoomSession;
     MainServer *mainserv_;
@@ -65,6 +57,9 @@ private:
     bool do_not_allow_modify_users = false;
     std::mutex mut_users_;
     MessageManager msg_man_;
+
+public:
+    Chatroom(net::io_context &ioc) : ioc_(ioc) {}
 
 private:
     template <typename Foo>
@@ -84,7 +79,7 @@ private:
     bool HasToken(const std::string &token);
     void AwaitSocket(const std::string &token);
 
-    void AddUser(shared_socket socket, std::string name, std::string token, std::string roomname);
+    bool AddUser(shared_socket socket, std::string name, std::string token);
     void SendMessages(const std::string &token, const std::string &message);
     void DeleteUser(const std::string &token);
     std::string RoomMembers();
@@ -92,6 +87,7 @@ private:
 
 class MainServer
 {
+
     friend class Chatroom;
     friend class ServerSession;
     friend class AbstactSession;
@@ -99,9 +95,40 @@ class MainServer
     net::io_context &ioc_;
     tcp::acceptor acceptor_;
     tcp::endpoint endpoint_;
+    Service::TokenGen tokezier_;
 
-    bool is_first_run_ = true;
     std::unordered_map<std::string, std::shared_ptr<Chatroom>> rooms_;
+    std::mutex mtx_;
+    std::atomic_bool mod_users_ = false;
+    std::condition_variable condition_;
+
+    template<typename Foo>
+    void AvoidModUsers(Foo foo){
+         std::unique_lock<std::mutex> ul(mtx_);
+     condition_.wait(ul, [this]
+                             { return this->mod_users_ == false; });
+    mod_users_ = true;
+          foo();
+    mod_users_ = false;
+    condition_.notify_all();
+    }
+    
+    bool IsAutorizatedUser(const std::string &name, const std::string &passhash)
+    {
+        return true;
+    }
+    
+    void CreateRoom(std::string room)
+    {
+       auto lam = [&]{ rooms_[room] = std::make_shared<Chatroom>(this->ioc_);};
+       AvoidModUsers(lam);
+    }
+
+    void AddUserToRoom(shared_socket socket, const std::string &name, const std::string token, const std::string &roomname)
+    {
+        auto room = rooms_.at(roomname);
+        room->AddUser(socket, name, token);
+    }
 
     class ServerSession : public AbstractSession
     {
@@ -109,80 +136,57 @@ class MainServer
 
         void ExecuteTask(shared_task action)
         {
-            ExectuteReadySession(action, socket_, strand_);
+            ExectuteReadySession(action, socket_);
         }
 
-        std::string ExectuteReadySession(shared_task action, shared_socket socket, shared_strand strand)
+        std::string ExectuteReadySession(shared_task action, shared_socket socket)
         {
             Service::ACTION act = Service::Additional::action_scernario.at(action->at(CONSTANTS::LF_ACTION));
             switch (act)
             {
             case Service::ACTION::CREATE_ROOM:
+            {
+                
+                return ServiceChatroomServer::Srv_MakeSuccessCreateRoom(std::move(action->at(CONSTANTS::LF_ROOMNAME)));
+            }
+            break;
 
-                
-                return ServiceChatroomServer::Srv_MakeSuccessCreateRoom
-                (std::move(action->at(CONSTANTS::LF_ROOMNAME)));
-                break;
             case Service::ACTION::CREATE_USER:
-                /* code */
-                
-                return ServiceChatroomServer::Srv_MakeSuccessCreateUser
-                (std::move(action->at(CONSTANTS::LF_NAME)));
-                break;
+            { /* code */
+
+                return ServiceChatroomServer::Srv_MakeSuccessCreateUser(std::move(action->at(CONSTANTS::LF_NAME)));
+            }
+            break;
             case Service::ACTION::GET_USERS:
-                
-                
+
                 return ServiceChatroomServer::Srv_MakeSuccessGetUsers("");
                 /* code */
                 break;
             case Service::ACTION::LOGIN:
-                
-                return ServiceChatroomServer::Srv_MakeSuccessLogin("", "");
+                return LoginUser(action, socket);
                 break;
             case Service::ACTION::ROOM_LIST:
-                
+            {
                 return ServiceChatroomServer::Srv_MakeSuccessRoomList("");
-                break;
+            }
+            break;
             }
 
             return ServiceChatroomServer::MakeAnswerError("UNRECOGNIZED ACTION", __func__);
         }
 
-        std::string GetStringResponceToSocket(shared_task action) override
-        {
-            auto reason = ServiceChatroomServer::CHK_Chr_CheckErrorsChatServer(*action);
-            if (reason)
-            {
-                return ServiceChatroomServer::MakeAnswerError(*reason, __func__);
-            }
-            return ExectuteReadySession(action, socket_, strand_);
-        }
+        std::string GetStringResponceToSocket(shared_task action) override;
+        std::string LoginUser(shared_task action, shared_socket socket);
 
     public:
         ServerSession(MainServer *server, shared_socket socket, shared_strand strand)
             : AbstractSession(server->ioc_, strand, socket), server_(server) {};
-
-        void HandleExistsSocket(shared_task action, Chatroom::Chatuser &chatuser)
-        {
-            return;
-        };
     };
 
 public:
     void Listen();
-
-    MainServer(net::io_context &ioc) : ioc_(ioc), acceptor_(net::make_strand(ioc_))
-    {
-        init();
-    }
-
-    void PrintRooms()
-    {
-        for (auto &&room : rooms_)
-        {
-            std::cout << room.first << " members:" << room.second->users_.size() << '\n';
-        }
-    }
+    MainServer(net::io_context &ioc);
+    void PrintRooms();
 
 private:
     void init();

@@ -1,30 +1,53 @@
 #include "srv.h"
-void AbstractSession::HandleSession()
+
+std::string MainServer::ServerSession::LoginUser(shared_task action, shared_socket socket)
 {
-    if (!Service::IsAliveSocket(*socket_))
+    // ЕСЛИ АВТОРИЗОВАН
+    const auto &name = action->at(CONSTANTS::LF_NAME);
+    const auto &pass = action->at(CONSTANTS::LF_PASSWORD);
+    if (!server_->IsAutorizatedUser(name, pass))
     {
-        Service::ShutDownSocket(*socket_);
-        return;
+        return ServiceChatroomServer::MakeAnswerError("YOU ARE NOT AUTHORIZED", __func__);
     }
-    auto self = this->shared_from_this();
-    net::async_read_until(*socket_, readbuf_, CONSTANTS::SERIAL_SYM, [self](err ec, size_t bytes)
-                          {
-                    
-                    if(!ec){
-                    
-                    auto obj = Service::ExtractSharedObjectsfromBuffer(self->readbuf_, bytes);
-                    std::string responce = self->GetStringResponceToSocket(obj);
-                    self->readbuf_.consume(bytes);
-                    
-                    Service::PrintUmap(*obj);
-                    net::async_write(*(self->socket_), 
-                    net::buffer(responce),[self](err ec, size_t bytes){
-                        if(!ec){
-                          net::dispatch(*self->strand_,[self]{ self->HandleSession();});
-                        }
-                    });}
+    // Генерируем токен
+    std::string token = this->server_->tokezier_.GenerateHEXToken();
 
-                    });
+    // Блокируем возможность модифицировать комнаты
+    std::atomic_bool &mod_users = server_->mod_users_;
+    std::unique_lock<std::mutex> ul(server_->mtx_);
+    server_->condition_.wait(ul, [&mod_users]
+                             { return mod_users == false; });
+    mod_users = true;
 
-    return;
-};
+    // ЕСЛИ ЕСТЬ ТАКАЯ КОМНАТА
+    std::string &roomname = action->at(CONSTANTS::LF_ROOMNAME);
+    if (!server_->rooms_.contains(roomname))
+    {
+        // СНИМАЕМ БЛОКИРОВКУ
+        mod_users = false;
+        server_->condition_.notify_all();
+        return ServiceChatroomServer::MakeAnswerError("NO ROOM: " + roomname, __func__);
+    };
+    auto room = server_->rooms_.at(roomname);
+    // УДАЛОСЬ ЛИ ДОБАВТЬ
+    bool added = room->AddUser(socket, name, token);
+    // СНИМАЕМ БЛОКИРОВКУ
+    mod_users = false;
+    server_->condition_.notify_all();
+    if (added)
+    {
+        // ОТВЕЧАЕМ УСПЕХОМ
+        return ServiceChatroomServer::Srv_MakeSuccessLogin(std::move(token), std::move(roomname), room->msg_man_.LastMessages());
+    }
+    return ServiceChatroomServer::MakeAnswerError("FAILED TO ADD USER", __func__);
+}
+
+std::string MainServer::ServerSession::GetStringResponceToSocket(shared_task action)
+{
+    auto reason = ServiceChatroomServer::CHK_Chr_CheckErrorsChatServer(*action);
+    if (reason)
+    {
+        return ServiceChatroomServer::MakeAnswerError(*reason, __func__);
+    }
+    return ExectuteReadySession(action, socket_);
+}

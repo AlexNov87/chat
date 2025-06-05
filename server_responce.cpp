@@ -18,7 +18,7 @@ namespace ServiceChatroomServer
         Service::DoubleGuardedExcept<void>(
             [&]()
             {
-                socket.write_some(net::buffer(MakeAnswerError(reason, initiator)));
+               net::async_write(socket, (net::buffer(MakeAnswerError(reason, initiator))), [](err ec, size_t bytes){});  
             },
             "WriteErrorToSocket");
     };
@@ -61,12 +61,13 @@ namespace ServiceChatroomServer
     };
 
     // ОТВЕТ СЕРВЕРА НА УСПЕШНОЕ ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ
-    std::string Srv_MakeSuccessLogin(std::string token, std::string roomname)
+    std::string Srv_MakeSuccessLogin(std::string token, std::string roomname, std::string lstmsg)
     {
         task res = GetSuccess();
         res[CONSTANTS::LF_ACTION] = CONSTANTS::ACT_LOGIN;
         res[CONSTANTS::LF_TOKEN] = std::move(token);
         res[CONSTANTS::LF_ROOMNAME] = std::move(roomname);
+        res[CONSTANTS::LF_LAST_MSG] = std::move(lstmsg);
         return Service::SerializeUmap<std::string, std::string>(res);
     };
     // ОТВЕТ СЕРВЕРА НА УСПЕШНОЕ СОЗДАНИЕ(регистрацию) ПОЛЬЗОВАТЕЛЯ

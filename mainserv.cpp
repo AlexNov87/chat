@@ -65,8 +65,18 @@ void MainServer::Listen()
              (this, std::make_shared<tcp::socket>(std::move(socket)),
                Service::MakeSharedStrand(this->ioc_)); 
              servsess->HandleSession();
-             Listen(); 
-        });
+             Listen(); });
+}
 
-   
+MainServer::MainServer(net::io_context &ioc) : ioc_(ioc), acceptor_(net::make_strand(ioc_))
+{
+    init();
+}
+
+void MainServer::PrintRooms()
+{
+    for (auto &&room : rooms_)
+    {
+        std::cout << room.first << " members:" << room.second->users_.size() << '\n';
+    }
 }

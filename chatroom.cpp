@@ -22,27 +22,29 @@ bool Chatroom::HasToken(const std::string &token)
         try
         {
             boost::asio::streambuf buffer;
-            auto lam =  [&,socket](boost::system::error_code ec, std::size_t bytes)
+            auto lam =  [&,socket, strand](boost::system::error_code ec, std::size_t bytes)
                                           {
                                               if (!ec)
                                               {
-                                                auto action = Service::ExtractSharedObjectsfromBuffer(buffer,bytes );
-                                                  
+                                                auto action = Service::ExtractSharedObjectsfromBuffer(buffer,bytes);
                                                   //ПРОВЕРЯЕМ НАПРАВЛЕНИЕ ЗАДАЧИ (есть ли ошибка в поле "направление задачи")
                                                   auto direction_err = ServiceChatroomServer::CHK_FieldDirectionIncorrect(*action);
+                                                  //ПРОВЕРЯЕМ НАПРАВЛЕНИЕ
                                                   if(direction_err){
                                                     ServiceChatroomServer::WriteErrorToSocket(socket, *direction_err, "AwaitSocket");
                                                     AwaitSocket(token);
                                                   }
                                                     //ЕСЛИ ЗАДАЧА ОТНОСИТСЯ К ЧАТ-РУМУ 
                                                     if(action->at(CONSTANTS::LF_DIRECTION) == CONSTANTS::RF_DIRECTION_CHATROOM) {
-                                                       auto chrsess = std::make_shared<ChatRoomSession>(this);
-                                                       chrsess->HandleExistingSocket(socket, action);
+                                                       auto chrsess = std::make_shared<ChatRoomSession>(this, socket, strand);
+                                                    
                                                     }
+                                                    else
+                                                    {
                                                     //ЕСЛИ ЗАДАЧА ОТНОСИТСЯ К CЕРВЕРУ
                                                     auto servsessptr = std::make_shared<MainServer::ServerSession>(this->mainserv_, socket, strand);
-                                                    servsessptr->HandleExistsSocket(action ,this->users_.at(token));  
-                                                  
+                                                    servsessptr->HandleSession();
+                                                    }
                                               }
                                               else
                                               {
@@ -56,11 +58,9 @@ bool Chatroom::HasToken(const std::string &token)
         }
         catch (const boost::system::system_error &err)
         {
-
             if (err.code() == boost::asio::error::eof)
             {
-                std::cout << "Remote side closed connection (EOF)" << std::endl;
-                // Корректное завершение работы с сокетом
+               // std::cout << "Remote side closed connection (EOF)" << std::endl;   
             }
             else
             {
@@ -70,9 +70,7 @@ bool Chatroom::HasToken(const std::string &token)
         }
     }
 
-    
-
-    void Chatroom::AddUser(shared_socket socket, std::string name, std::string token, std::string roomname)
+    bool Chatroom::AddUser(shared_socket socket, std::string name, std::string token)
     {
         auto lam = [&]()
         {
@@ -85,20 +83,15 @@ bool Chatroom::HasToken(const std::string &token)
         if (!Service::IsAliveSocket(users_.at(token).socket_))
         {
             DeleteUser(token);
-            return;
+            return false;
         }
         
-        std::string responce = ServiceChatroomServer::
-        Srv_MakeSuccessLogin(token, std::move(roomname)); 
-        net::post( *(users_.at(token).strand_), [&, resp = std::move(responce)]()
-                  { users_.at(token).socket_->write_some(net::buffer(resp));});
-
-        std::string lastmess = msg_man_.LastMessages();
-        net::post( *(users_.at(token).strand_), [&, resp = std::move(lastmess)]()
-                  { users_.at(token).socket_->write_some(net::buffer(resp));});
-
+        //ЛОГИРУЕМ СИТЕМНОЕ СООБЩЕНИЕ
         msg_man_.ServiceMessage(users_.at(token).name_ + " IS CONNECTED" );
-        AwaitSocket(token);
+        
+        //ПОСТИМ В КОНТЕКСТ СЕРВЕРА ЧТОБЫ СОКЕТ ПОСТАВТЬ НА ПРОСЛУШИВАНИЕ
+        net::post(mainserv_->ioc_, [&,token]{AwaitSocket(token);}); 
+        return true;
     }
 
     void Chatroom::SendMessages(const std::string& token, const std::string& message)

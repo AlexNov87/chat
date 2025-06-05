@@ -36,6 +36,7 @@
 #include <array>
 #include <optional>
 #include <deque>
+#include <future>
 #include "const.h"
 
 namespace net = boost::asio;
@@ -223,7 +224,7 @@ namespace ServiceChatroomServer
     ///@brief Успешное получение списка юзеров
     std::string Srv_MakeSuccessGetUsers(std::string userlist);
     ///@brief Успешный вход в систему
-    std::string Srv_MakeSuccessLogin(std::string token, std::string roomname);
+    std::string Srv_MakeSuccessLogin(std::string token, std::string roomname, std::string lastmsg);
     ///@brief Успешное создание пользователя
     std::string Srv_MakeSuccessCreateUser(std::string name);
     ///@brief Успешное создание комнаты
