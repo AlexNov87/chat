@@ -31,6 +31,5 @@ std::string Chatroom::ChatRoomSession::HandleAction(shared_task action)
     }
     break;
     }
-
     return ServiceChatroomServer::MakeAnswerError("UNKNOWN ACTION", __func__);
 }

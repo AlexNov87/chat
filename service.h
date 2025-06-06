@@ -48,15 +48,103 @@ using shared_task = std::shared_ptr<task>;
 using strand = boost::asio::strand<boost::asio::io_context::executor_type>;
 using shared_strand = std::shared_ptr<strand>;
 using err = boost::system::error_code;
+using booltype = std::atomic_bool;
 
-template<typename... Args>
-void ZyncPrint(Args... args){
-  auto st = std::osyncstream(std::cout);
-  (... , (st << args << '\n'));
+template <typename... Args>
+void ZyncPrint(Args... args)
+{
+    auto st = std::osyncstream(std::cout);
+    (..., (st << args << '\n'));
 }
 
 namespace Service
 {
+
+    class NoConditionGuardLock
+    {
+    public:
+        NoConditionGuardLock(booltype &lc, std::mutex &mtx) : locker_(lc), ul_(mtx) {};
+        virtual void UnlockImmediately()
+        {
+            CheckThatWasLocked();
+            if (!was_im_unlocked_)
+            {
+                Unlock();
+                ul_.unlock();
+                was_im_unlocked_ = true;
+            }
+            else
+            {
+                throw std::logic_error("ONCE YOU UNLOCKED THIS OPERATION");
+            }
+        };
+        virtual ~NoConditionGuardLock()
+        {
+
+            if (!was_im_unlocked_)
+            {
+                Unlock();
+            }
+        }
+
+        virtual void Lock()
+        {
+            // локер закрыт
+            locker_ = true;
+            was_locked_ = true;
+        };
+
+    protected:
+        virtual void Unlock()
+        {
+            CheckThatWasLocked();
+            // локер открыт(значение false что он открыт)
+            locker_ = false;
+        };
+
+        void CheckThatWasLocked()
+        {
+            if (!was_locked_)
+            {
+                throw std::logic_error("THE OBJECT WASN`T LOCKED");
+            }
+        }
+
+        booltype &locker_;
+        std::unique_lock<std::mutex> ul_;
+        bool was_im_unlocked_ = false;
+        bool was_locked_ = false;
+    };
+
+    class GuardLockConditional : public NoConditionGuardLock
+    {
+    public:
+        GuardLockConditional(booltype &lc, std::mutex &mtx, std::condition_variable &condition);
+        ~GuardLockConditional() override;
+        void UnlockImmediately() override;
+        void Lock() override;
+
+    protected:
+        virtual void Unlock() override;
+        std::condition_variable &condition_;
+    };
+
+    class GuardLockAnotherAwait : public GuardLockConditional
+    {
+    public:
+        GuardLockAnotherAwait(booltype &lc, std::mutex &mtx,
+                              std::condition_variable &condition, booltype &an_await)
+            : GuardLockConditional(lc, mtx, condition), another_await_(an_await) {};
+        ~GuardLockAnotherAwait() override
+        {
+            Unlock();
+        };
+        void Lock() override;
+
+    protected:
+        booltype &another_await_;
+    };
+
     enum class ACTION
     {
         /*Запросы к Чат-Комнате*/
@@ -81,15 +169,9 @@ namespace Service
         static std::mutex mtx;
     };
 
-    enum class COMED_FROM
-    {
-        COMED_FROM_SERVER,
-        COMED_FROM_OLD_SOCKET
-    };
-
     ///@brief Печать Unordered_Map
     template <typename T1, typename T2>
-    void PrintUmap(std::unordered_map<T1, T2> object, std::ostream& os = std::cout)
+    void PrintUmap(std::unordered_map<T1, T2> object, std::ostream &os = std::cout)
     {
         std::lock_guard<std::mutex> lg(Additional::mtx);
         for (auto &&el : object)
@@ -99,9 +181,9 @@ namespace Service
         std::osyncstream(os) << '\n';
     }
 
-     ///@brief Печать Unordered_Map
+    ///@brief Печать Unordered_Map
     template <typename T1, typename T2>
-    void PrintUmapF(std::unordered_map<T1, T2> object, std::ofstream& os)
+    void PrintUmapF(std::unordered_map<T1, T2> object, std::ofstream &os)
     {
         for (auto &&el : object)
         {
@@ -109,17 +191,21 @@ namespace Service
         };
         os << '\n';
     }
-    struct MutableBufferHolder {
-    MutableBufferHolder()
-        : data(std::make_shared<std::array<char, 2048>>()),
-          buffer(data->data(), data->size())
-    {}
-    net::mutable_buffer& UseBuffer(){
-        return buffer;
-    }
+    struct MutableBufferHolder
+    {
+        MutableBufferHolder()
+            : data(std::make_shared<std::array<char, 2048>>()),
+              buffer(data->data(), data->size())
+        {
+        }
+        net::mutable_buffer &UseBuffer()
+        {
+            return buffer;
+        }
+
     private:
-    std::shared_ptr<std::array<char, 2048>> data;
-    net::mutable_buffer buffer;
+        std::shared_ptr<std::array<char, 2048>> data;
+        net::mutable_buffer buffer;
     };
 
     ///@brief Сериализатор Unordered_Map
@@ -193,12 +279,12 @@ namespace Service
     std::string ExtractStrFromStreambuf(net::streambuf &buffer, size_t extract);
 
     shared_strand MakeSharedStrand(net::io_context &ioc);
-    template<typename T>
-    shared_socket MakeSharedSocket(T& executor){
-        return std::make_shared<tcp::socket>(executor); 
+    template <typename T>
+    shared_socket MakeSharedSocket(T &executor)
+    {
+        return std::make_shared<tcp::socket>(executor);
     }
-
-    std::shared_ptr<MutableBufferHolder> MakeSharedMutableGuffer();
+    std::shared_ptr<MutableBufferHolder> MakeSharedMutableBuffer();
     std::shared_ptr<net::streambuf> MakeSharedStreambuf();
 }
 
@@ -207,9 +293,6 @@ namespace ServiceChatroomServer
     std::optional<std::string> CHK_ServerLoadObject(const boost::json::value &obj);
     ///@brief Создать о
     std::string MakeAnswerError(std::string reason, std::string initiator);
-    ///@brief  Написаить ошибку в сокет
-    void WriteErrorToSocket(tcp::socket &socket, std::string reason, std::string initiator);
-    void WriteErrorToSocket(shared_socket socket, std::string reason, std::string initiator);
     ///@brief Проверяет валидно ли поле "направление"
     std::optional<std::string> CHK_FieldDirectionIncorrect(const task &action);
     ///@brief Проверяет валиден ли запрос к чатруму

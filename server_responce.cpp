@@ -11,21 +11,6 @@ namespace ServiceChatroomServer
             {CONSTANTS::LF_INITIATOR, std::move(initiator)}};
         return Service::SerializeUmap(res);
     };
-
-    void WriteErrorToSocket(tcp::socket &socket, std::string reason, std::string initiator)
-    {
-
-        Service::DoubleGuardedExcept<void>(
-            [&]()
-            {
-               net::async_write(socket, (net::buffer(MakeAnswerError(reason, initiator))), [](err ec, size_t bytes){});  
-            },
-            "WriteErrorToSocket");
-    };
-
-    void WriteErrorToSocket(shared_socket socket, std::string reason, std::string initiator){
-          WriteErrorToSocket(*socket, std::move(reason), std::move(initiator));
-    }
 }
 
 // SUCESS CHATROOM

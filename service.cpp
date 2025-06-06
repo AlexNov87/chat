@@ -3,7 +3,6 @@ using namespace std;
 
 namespace Service
 {
-
     const std::unordered_map<std::string, ACTION> Additional::action_scernario{
         {CONSTANTS::ACT_CREATE_ROOM, ACTION::CREATE_ROOM},
         {CONSTANTS::ACT_CREATE_USER, ACTION::CREATE_USER},
@@ -23,7 +22,7 @@ namespace Service
     const std::unordered_set<std::string> Service::Additional::request_directions{
         CONSTANTS::RF_DIRECTION_SERVER, CONSTANTS::RF_DIRECTION_CHATROOM};
 
-        std::mutex Service::Additional::mtx;
+    std::mutex Service::Additional::mtx;
 
     void MtreadRunContext(net::io_context &ioc)
     {
@@ -58,9 +57,9 @@ namespace Service
     {
         return std::make_shared<strand>(net::make_strand(ioc));
     }
-    std::shared_ptr<MutableBufferHolder> MakeSharedMutableGuffer()
+    std::shared_ptr<MutableBufferHolder> MakeSharedMutableBuffer()
     {
-       return std::shared_ptr<Service::MutableBufferHolder>();
+        return std::shared_ptr<Service::MutableBufferHolder>();
     };
     std::shared_ptr<net::streambuf> MakeSharedStreambuf()
     {
@@ -71,7 +70,6 @@ namespace Service
 
 namespace Service
 {
-
     bool IsAliveSocket(tcp::socket &sock)
     {
         if (!sock.is_open())
@@ -142,17 +140,71 @@ namespace Service
         return str;
     }
 
-    
-
     task ExtractObjectsfromBuffer(net::streambuf &buffer, size_t extract)
     {
         std::string str(ExtractStrFromStreambuf(buffer, extract));
-        return DeserializeUmap<std::string,std::string>(str);
+        return DeserializeUmap<std::string, std::string>(str);
     };
     shared_task ExtractSharedObjectsfromBuffer(net::streambuf &buffer, size_t extract)
     {
         std::string str(ExtractStrFromStreambuf(buffer, extract));
-        return std::make_shared<task>(DeserializeUmap<std::string,std::string>(str));
+        return std::make_shared<task>(DeserializeUmap<std::string, std::string>(str));
+    };
+
+}
+
+namespace Service
+{
+    GuardLockConditional::GuardLockConditional(std::atomic_bool &lc,
+         std::mutex &mtx , std::condition_variable &condition) 
+         : NoConditionGuardLock(lc, mtx), condition_(condition){}
+
+    GuardLockConditional::~GuardLockConditional()
+    {
+        if (!was_im_unlocked_)
+        {
+            Unlock();
+        }
+    }
+
+    void GuardLockConditional::UnlockImmediately()
+    {
+        if (!was_im_unlocked_)
+        {
+            Unlock();
+            ul_.unlock();
+            was_im_unlocked_ = true;
+        }
+        else
+        {
+            throw std::logic_error("ONCE YOU UNLOCKED THIS OPERATION");
+        }
+    }
+
+    void GuardLockConditional::Lock()
+    {
+        condition_.wait(ul_, [&]
+                        { return locker_ == false; });
+        locker_ = true;
+        was_locked_ = true;
+    }
+
+    void GuardLockConditional::Unlock()
+    {
+        CheckThatWasLocked();
+        locker_ = false;
+        condition_.notify_all();
+    
+    }
+    ///////////////////////////////////////////////////////////
+    void GuardLockAnotherAwait::Lock()
+    {
+        // Блокируем локер, (взялся за выполнение функции)
+        locker_ = true;
+        was_locked_ = true;
+        // Ждем выполнение внешнего условия
+        condition_.wait(ul_, [&]()
+                        { return another_await_ == false; });
     };
 
 }
