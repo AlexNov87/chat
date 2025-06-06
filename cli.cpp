@@ -103,16 +103,39 @@ void test1()
   }
 }
 
+
+void 
+test2(){
+  std::vector<std::string> o{
+     
+     // UserInterface::US_ChrMakeSendMessage(gen.GenerateHEXToken(), "22sssssssswdqeefvqwef222222222222222222222222222222"),
+     // UserInterface::US_ChrMakeObjDisconnect(gen.GenerateHEXToken()),
+      UserInterface::US_SrvMakeObjCreateRoom("YANDEX"),
+    //  UserInterface::US_SrvMakeObjCreateUser("RRAT", "hjsjklk;l"),
+    //  UserInterface::US_SrvMakeObjGetUsers("RRAT"),
+    //  UserInterface::US_SrvMakeObjLogin("RRAT", "jijjiw", "kjjolpdpw"),
+    //  UserInterface::US_SrvMakeObjRoomList()
+
+  };
+  
+  for(int q = 0; q< 100; ++q){
+   for(int i = 0; i< o.size(); ++i){
+      net::async_write(*socket__, net::buffer(o[i]), [](err ec, size_t bytes){
+                  
+      });
+   }
+  }
+
+}
+
+
 int main()
 {
    InitSocket();  // сначала подключаемся
    Read();       // затем запускаем чтение
+   test2();
   
   
-  for (int i = 0; i < 2;)
-  {
-    test1();    
-  }
   //запуск ioc
   Service::MtreadRunContext(ioc);
 }

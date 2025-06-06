@@ -55,6 +55,10 @@ std::string MainServer::CreateRoom(std::string room)
     try
     {
         Service::GuardLockConditional(sync_.mod_users_ , sync_.mtx_lock_mod_users_ , sync_.condition_).Lock();
+        if(rooms_.contains(room)){
+           return ServiceChatroomServer::MakeAnswerError("FAILED TO CREATE ROOM, ROOM WITH THIS NAME IS EXISTS", __func__);
+        }
+        
         rooms_[room] = std::make_shared<Chatroom>(this->ioc_);
         return ServiceChatroomServer::Srv_MakeSuccessCreateRoom(room);
     }

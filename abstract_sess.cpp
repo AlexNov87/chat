@@ -39,7 +39,8 @@ void AbstractSession::HandleSession(bool need_check)
                                   //ЧИСТА БУФЕРА
                                   self->readbuf_.consume(bytes);
                                   
-                                  Service::PrintUmap(*action);
+                                  auto resobj = Service::DeserializeUmap<std::string, std::string>(responce);
+                                  Service::PrintUmap(resobj);
                                   //ПИШЕМ В СОКЕТ
                                   net::async_write(*(self->socket_), net::buffer(responce), [self](err ec, size_t bytes) {
                                                       if(!ec){net::post(*self->strand_,[self]{ self->HandleSession();});}//if !ec inner
