@@ -38,7 +38,7 @@
 #include <deque>
 #include <future>
 #include "const.h"
-
+#include "guardlock.h"
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
 using task = std::unordered_map<std::string, std::string>;
@@ -48,7 +48,7 @@ using shared_task = std::shared_ptr<task>;
 using strand = boost::asio::strand<boost::asio::io_context::executor_type>;
 using shared_strand = std::shared_ptr<strand>;
 using err = boost::system::error_code;
-using booltype = std::atomic_bool;
+
 
 template <typename... Args>
 void ZyncPrint(Args... args)
@@ -59,91 +59,6 @@ void ZyncPrint(Args... args)
 
 namespace Service
 {
-
-    class NoConditionGuardLock
-    {
-    public:
-        NoConditionGuardLock(booltype &lc, std::mutex &mtx) : locker_(lc), ul_(mtx) {};
-        virtual void UnlockImmediately()
-        {
-            CheckThatWasLocked();
-            if (!was_im_unlocked_)
-            {
-                Unlock();
-                ul_.unlock();
-                was_im_unlocked_ = true;
-            }
-            else
-            {
-                throw std::logic_error("ONCE YOU UNLOCKED THIS OPERATION");
-            }
-        };
-        virtual ~NoConditionGuardLock()
-        {
-
-            if (!was_im_unlocked_)
-            {
-                Unlock();
-            }
-        }
-
-        virtual void Lock()
-        {
-            // локер закрыт
-            locker_ = true;
-            was_locked_ = true;
-        };
-
-    protected:
-        virtual void Unlock()
-        {
-            CheckThatWasLocked();
-            // локер открыт(значение false что он открыт)
-            locker_ = false;
-        };
-
-        void CheckThatWasLocked()
-        {
-            if (!was_locked_)
-            {
-                throw std::logic_error("THE OBJECT WASN`T LOCKED");
-            }
-        }
-
-        booltype &locker_;
-        std::unique_lock<std::mutex> ul_;
-        bool was_im_unlocked_ = false;
-        bool was_locked_ = false;
-    };
-
-    class GuardLockConditional : public NoConditionGuardLock
-    {
-    public:
-        GuardLockConditional(booltype &lc, std::mutex &mtx, std::condition_variable &condition);
-        ~GuardLockConditional() override;
-        void UnlockImmediately() override;
-        void Lock() override;
-
-    protected:
-        virtual void Unlock() override;
-        std::condition_variable &condition_;
-    };
-
-    class GuardLockAnotherAwait : public GuardLockConditional
-    {
-    public:
-        GuardLockAnotherAwait(booltype &lc, std::mutex &mtx,
-                              std::condition_variable &condition, booltype &an_await)
-            : GuardLockConditional(lc, mtx, condition), another_await_(an_await) {};
-        ~GuardLockAnotherAwait() override
-        {
-            Unlock();
-        };
-        void Lock() override;
-
-    protected:
-        booltype &another_await_;
-    };
 
     enum class ACTION
     {

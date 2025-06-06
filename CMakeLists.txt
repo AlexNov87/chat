@@ -16,6 +16,8 @@ const.h const.cpp
 service.h service.cpp 
 service_action_check.cpp
 tokenizer.h tokenizer.cpp 
+guardlock.cpp
+guardlock.h
 )
 
 set(u
