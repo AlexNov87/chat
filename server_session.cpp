@@ -23,22 +23,27 @@ std::string MainServer::ServerSession::ExectuteReadySession(shared_task action, 
         switch (act)
         {
         case Service::ACTION::CREATE_ROOM:    
+            ZyncPrint("CREATE_ROOM:");
             return server_->CreateRoom(std::move(action->at(CONSTANTS::LF_ROOMNAME)));
             break;
         case Service::ACTION::CREATE_USER:
+             ZyncPrint("CREATE_USER:");
             return server_->AddUserToSQL(action->at(CONSTANTS::LF_NAME), action->at(CONSTANTS::LF_PASSWORD));
             break;
         case Service::ACTION::GET_USERS:            
-            return server_->GetRoomUsersList(CONSTANTS::LF_ROOMNAME);
+             ZyncPrint("GET_USERS:");
+            return server_->GetRoomUsersList(action->at(CONSTANTS::LF_ROOMNAME));
             break;
         case Service::ACTION::LOGIN:           
+             ZyncPrint("LOGIN:");
             return server_->LoginUser(action, socket);
             break;
         case Service::ACTION::ROOM_LIST:           
+           ZyncPrint("::ROOM_LIST:");
            return server_->GetRoomsList();
             break;
         }
-        return ServiceChatroomServer::MakeAnswerError("UNRECOGNIZED ACTION SERVSESSION", __func__);
+        return ServiceChatroomServer::MakeAnswerError("UNRECOGNIZED ACTION SERVSESSION ", __func__);
     }
     catch (const std::exception &ex)
     {

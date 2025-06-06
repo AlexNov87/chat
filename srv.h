@@ -15,6 +15,7 @@ protected:
     shared_strand strand_;
     std::atomic_bool condition = true;
     net::steady_timer timer_;
+    std::deque<std::string> mess_queue_;
     virtual std::string GetStringResponceToSocket(shared_task action) = 0;
 
 public:

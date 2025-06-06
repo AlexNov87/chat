@@ -39,6 +39,9 @@ void AbstractSession::HandleSession(bool need_check)
                                   //ЧИСТА БУФЕРА
                                   self->readbuf_.consume(bytes);
                                   
+                                  //КЛАДЕМ В ОЧЕРЕДЬ???
+                                  self->mess_queue_.push_back(responce);
+
                                   auto resobj = Service::DeserializeUmap<std::string, std::string>(responce);
                                   Service::PrintUmap(resobj);
                                   //ПИШЕМ В СОКЕТ
