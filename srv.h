@@ -5,7 +5,33 @@
 
 class MainServer;
 
-class Chatroom
+class AbstractSession : public std::enable_shared_from_this<AbstractSession>
+{
+protected:
+    AbstractSession(net::io_context &ioc, shared_strand strand, shared_socket &socket)
+        : timer_{ioc}, strand_(strand), socket_(socket) {}
+    shared_socket socket_;
+    beast::flat_buffer readbuf_;
+    request request_;
+    shared_strand strand_;
+    std::atomic_bool condition = true;
+    net::steady_timer timer_;
+    std::deque<std::string> mess_queue_;
+    std::atomic_bool keep_sess_ = true;
+    virtual std::string GetStringResponceToSocket(shared_task action) = 0;
+
+    ~AbstractSession(){
+        ZyncPrint("SESSION CLOSED.........");
+    }
+
+public:
+    void HandleSession(bool need_check = true);
+    void FreeSession(){
+           keep_sess_ = false;
+    }
+};
+
+class Chatroom : public std::enable_shared_from_this<Chatroom>
 {
     struct Chatuser
     {
@@ -17,55 +43,39 @@ class Chatroom
         shared_socket socket_;
     };
 
-    class ChatRoomSession : public std::enable_shared_from_this<ChatRoomSession>
+    class ChatRoomSession : public AbstractSession
     {
         Chatroom *chatroom_ = nullptr;
 
     public:
-        ChatRoomSession(Chatroom *chat) : chatroom_(chat) {};
-
-        void HandleExistingSocket(shared_socket socket, shared_task action);
-        void HandleTaskFromServer(shared_socket socket, shared_task action);
+        ChatRoomSession(Chatroom *chat, shared_socket socket, shared_strand strand)
+            : AbstractSession(chat->ioc_, strand, socket), chatroom_(chat) {};
+        std::string GetStringResponceToSocket(shared_task action) override;
 
     private:
-        void HandleAction(shared_socket socket, shared_task action);
+        std::string HandleAction(shared_task action);
     };
 
-public:
-    Chatroom(net::io_context &ioc) : ioc_(ioc) {}
-
-private:
     friend class MainServer;
     friend class ChatRoomSession;
     MainServer *mainserv_;
     net::io_context &ioc_;
     std::unordered_map<std::string, Chatuser> users_;
+    
 
     std::condition_variable cond_;
-    bool modyfiing_users = false;
-    bool do_not_allow_modify_users = false;
+    booltype modyfiing_users = false;
+    booltype do_not_allow_modify_users = false;
     std::mutex mut_users_;
     MessageManager msg_man_;
 
-private:
-    template <typename Foo>
-    void MakeLockedModUsers(Foo foo)
-    {
-        // Блокируем возможность рассылки по сокетам на время модификации списка
-        std::unique_lock<std::mutex> ul(mut_users_);
-        modyfiing_users = true;
-        cond_.wait(ul, [&]()
-                   { return do_not_allow_modify_users == false; });
-        foo();
-        // закончили модификацию
-        modyfiing_users = false;
-        // оповещаем потоки
-        cond_.notify_all();
-    }
+public:
+    Chatroom(net::io_context &ioc) : ioc_(ioc) {}
+private:    
     bool HasToken(const std::string &token);
     void AwaitSocket(const std::string &token);
 
-    void AddUser(shared_socket socket, std::string name, std::string token, std::string roomname);
+    bool AddUser(shared_socket socket, std::string name, std::string token);
     void SendMessages(const std::string &token, const std::string &message);
     void DeleteUser(const std::string &token);
     std::string RoomMembers();
@@ -75,63 +85,82 @@ class MainServer
 {
     friend class Chatroom;
     friend class ServerSession;
+    friend class AbstactSession;
+
+    struct Syncro
+    {
+        std::mutex mtx_lock_mod_users_;
+        std::mutex mtx_lock_mod_sql_;
+        std::atomic_bool mod_users_ = false;
+        std::atomic_bool mod_sql_ = false;
+        std::condition_variable condition_;
+    };
+
+    class ServerSession : public AbstractSession
+    {
+        MainServer *server_;
+        void ExecuteTask(shared_task action);
+        std::string ExectuteReadySession(shared_task action, shared_socket socket);
+        std::string GetStringResponceToSocket(shared_task action) override;
+
+    public:
+        ServerSession(MainServer *server, shared_socket socket, shared_strand strand)
+            : AbstractSession(server->ioc_, strand, socket), server_(server) {};
+    };
 
     net::io_context &ioc_;
     tcp::acceptor acceptor_;
     tcp::endpoint endpoint_;
-
-    bool is_first_run_ = true;
+    Service::TokenGen tokezier_;
     std::unordered_map<std::string, std::shared_ptr<Chatroom>> rooms_;
+    std::unordered_map<std::string, std::shared_ptr<Chatroom>> token_rooms_;
+    Syncro sync_;
 
-    class ServerSession : public std::enable_shared_from_this<ServerSession>
+    // В работе....
+    bool AlreadyUserRegistered(const std::string &name)
     {
-        MainServer *server_;
-        shared_socket socket_;
-        net::streambuf readbuf_;
-        shared_strand strand_;
-        std::atomic_bool condition = true;
-        net::steady_timer timer_{server_->ioc_};
-
-        void ExecuteTask(shared_task action)
-        {
-            ExectuteReadySession(action, socket_, strand_);
-        }
-
-        void ExectuteReadySession(shared_task action, shared_socket socket, shared_strand strand)
-        {
-
-            ZyncPrint("EXECUTE READY............");
-            auto self = this->shared_from_this();
-            net::async_write(*socket_,
-                             net::buffer(ServiceChatroomServer::MakeAnswerError("TESTR", " TESTR")), [self](err ec, size_t bytes)
-                             { self->HandleSession(); });
-        }
-
-    public:
-        ServerSession(MainServer *server, shared_socket socket) : server_(server), socket_(socket) {}
-        void HandleSession();
-
-        void HandleExistsSocket(shared_task action, Chatroom::Chatuser &chatuser) {
-
-        };
+        /* ЛОГИКА ЗАПРОСА К SQL ИЛИ ЗАРАНЕЕ ПРОГРУЖЕННОМУ ОБЪЕКТУ*/
+        return false;
     };
 
-public:
-    void Listen();
-
-    MainServer(net::io_context &ioc) : ioc_(ioc), acceptor_(net::make_strand(ioc_))
+    bool IsAutorizatedUser(const std::string &name, const std::string &passhash)
     {
-        init();
+        /*  ПРОВЕРКА ЛОГИКИ АВТОРИЗАЦИИ */
+
+        return true;
     }
 
-    void PrintRooms()
+    std::string AddUserToSQL(const std::string &name, const std::string &passhash)
     {
-        for (auto &&room : rooms_)
+        std::lock_guard<std::mutex> lg(sync_.mtx_lock_mod_sql_); //??????? Возможно будет не нужно
+        try
         {
-            std::cout << room.first << " members:" << room.second->users_.size() << '\n';
+            // ЕСЛИ УЖЕ ЗАРЕГИСТРИРОВАН
+            if (AlreadyUserRegistered(name))
+            {
+                return ServiceChatroomServer::MakeAnswerError("USER WITH THIS NICK ALREADY REGISTERED", __func__);
+            };
+            /*
+            ЛОГИКА ЗАПРОСА К SQL И ДОБАВЛЕНИЕ В ОБЩИЙ СПИСОК??
+            */
+            return ServiceChatroomServer::Srv_MakeSuccessCreateUser(name);
+        }
+        catch (const std::exception &ex)
+        {
+            return ServiceChatroomServer::MakeAnswerError(ex.what(), __func__);
         }
     }
+      //..................    
+public:
+    void Listen();
+    MainServer(net::io_context &ioc);
+    void PrintRooms();
 
 private:
     void init();
+    //Действия
+    std::string GetRoomUsersList(const std::string &roomname);
+    std::string GetRoomsList();
+    std::string CreateRoom(std::string room);
+    std::string LoginUser(shared_task action, shared_socket socket);
 };

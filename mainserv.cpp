@@ -41,7 +41,7 @@ void MainServer::init()
             const auto &rooms = obj.as_object().at(CONSTANTS::CHATROOMS).as_array();
             for (const auto &room : rooms)
             {
-                rooms_[std::string(room.as_string())] = std::make_shared<Chatroom>(ioc_);
+                this->CreateRoom(std::string(room.as_string()));
             }
         }
     }
@@ -61,10 +61,24 @@ void MainServer::Listen()
               std::cout << ec.value() << "  " << ec.message() << '\n' <<
               ec.what() << '\n';
             }                                           
-             std::shared_ptr<ServerSession> servsess = std::make_shared<ServerSession>(this, std::make_shared<tcp::socket>(std::move(socket))); 
+             std::shared_ptr<ServerSession> servsess = std::make_shared<ServerSession>
+             (this, std::make_shared<tcp::socket>(std::move(socket)),
+               Service::MakeSharedStrand(this->ioc_)); 
              servsess->HandleSession();
-             Listen(); 
-        });
-
-   
+             Listen(); });
 }
+
+MainServer::MainServer(net::io_context &ioc) : ioc_(ioc), acceptor_(net::make_strand(ioc_))
+{
+    init();
+}
+
+void MainServer::PrintRooms()
+{
+    for (auto &&room : rooms_)
+    {
+        std::cout << room.first << " members:" << room.second->users_.size() << '\n';
+    }
+}
+
+

@@ -11,21 +11,6 @@ namespace ServiceChatroomServer
             {CONSTANTS::LF_INITIATOR, std::move(initiator)}};
         return Service::SerializeUmap(res);
     };
-
-    void WriteErrorToSocket(tcp::socket &socket, std::string reason, std::string initiator)
-    {
-
-        Service::DoubleGuardedExcept<void>(
-            [&]()
-            {
-                socket.write_some(net::buffer(MakeAnswerError(reason, initiator)));
-            },
-            "WriteErrorToSocket");
-    };
-
-    void WriteErrorToSocket(shared_socket socket, std::string reason, std::string initiator){
-          WriteErrorToSocket(*socket, std::move(reason), std::move(initiator));
-    }
 }
 
 // SUCESS CHATROOM
@@ -61,12 +46,13 @@ namespace ServiceChatroomServer
     };
 
     // ОТВЕТ СЕРВЕРА НА УСПЕШНОЕ ДОБАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯ
-    std::string Srv_MakeSuccessLogin(std::string token, std::string roomname)
+    std::string Srv_MakeSuccessLogin(std::string token, std::string roomname, std::string lstmsg)
     {
         task res = GetSuccess();
         res[CONSTANTS::LF_ACTION] = CONSTANTS::ACT_LOGIN;
         res[CONSTANTS::LF_TOKEN] = std::move(token);
         res[CONSTANTS::LF_ROOMNAME] = std::move(roomname);
+        res[CONSTANTS::LF_LAST_MSG] = std::move(lstmsg);
         return Service::SerializeUmap<std::string, std::string>(res);
     };
     // ОТВЕТ СЕРВЕРА НА УСПЕШНОЕ СОЗДАНИЕ(регистрацию) ПОЛЬЗОВАТЕЛЯ
@@ -102,6 +88,16 @@ namespace ServiceChatroomServer
         task res = GetSuccess();
         res[CONSTANTS::LF_ACTION] = CONSTANTS::ACT_EARLIER_MESS;
         res[CONSTANTS::LF_MESSAGE] = std::move(msglist);
+        return Service::SerializeUmap<std::string, std::string>(res);
+    };
+
+    // ОТВЕТ СЕРВЕРА НА УСПЕШНОЕ ПОЛУЧЕНИЕ СООБЩЕНИЯ ЮЗЕРА
+    std::string Chr_MakeSuccessUserMessage(std::string username, std::string msg)
+     {
+        task res = GetSuccess();
+        res[CONSTANTS::LF_ACTION] = CONSTANTS::ACT_USER_MESSAGE;
+        res[CONSTANTS::LF_NAME] = std::move(username);
+        res[CONSTANTS::LF_MESSAGE] = std::move(msg);
         return Service::SerializeUmap<std::string, std::string>(res);
     };
 

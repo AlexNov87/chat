@@ -1,36 +1,54 @@
 #include "srv.h"
-void MainServer::ServerSession::HandleSession()
+
+std::string MainServer::ServerSession::GetStringResponceToSocket(shared_task action)
 {
-    if (!Service::IsAliveSocket(*socket_))
+    auto reason = ServiceChatroomServer::CHK_Chr_CheckErrorsChatServer(*action);
+    if (reason)
     {
-        Service::ShutDownSocket(*socket_);
-        return;
+        return ServiceChatroomServer::MakeAnswerError(*reason, __func__);
     }
-    auto self = this->shared_from_this();
-    net::async_read_until(*socket_, readbuf_, '\n', [self](err ec, size_t bytes)
-                          {
-                    
-                    if(!ec){
-                    
-                    auto obj = Service::ExtractObjectsfromBuffer(self->readbuf_, bytes);
-                    Service::PrintUmap(obj);
-                    self->readbuf_.consume(bytes);
-                    
-                    net::async_write(*(self->socket_), 
-                    net::buffer(ServiceChatroomServer::MakeAnswerError("TESTR"," TESTR")),[self](err ec, size_t bytes){
-                        if(!ec){
-                         self->HandleSession();
-                        }
-                    });
-                    
-                    }});
+    return ExectuteReadySession(action, socket_);
+}
 
-    return;
-};
+void MainServer::ServerSession::ExecuteTask(shared_task action)
+{
+    ExectuteReadySession(action, socket_);
+}
 
-/*
+std::string MainServer::ServerSession::ExectuteReadySession(shared_task action, shared_socket socket)
+{
+    try
+    {
+        Service::ACTION act = Service::Additional::action_scernario.at(action->at(CONSTANTS::LF_ACTION));
+        switch (act)
+        {
+        case Service::ACTION::CREATE_ROOM:    
+            ZyncPrint("CREATE_ROOM:");
+            return server_->CreateRoom(std::move(action->at(CONSTANTS::LF_ROOMNAME)));
+            break;
+        case Service::ACTION::CREATE_USER:
+             ZyncPrint("CREATE_USER:");
+            return server_->AddUserToSQL(action->at(CONSTANTS::LF_NAME), action->at(CONSTANTS::LF_PASSWORD));
+            break;
+        case Service::ACTION::GET_USERS:            
+             ZyncPrint("GET_USERS:");
+            return server_->GetRoomUsersList(action->at(CONSTANTS::LF_ROOMNAME));
+            break;
+        case Service::ACTION::LOGIN:           
+             ZyncPrint("LOGIN:");
+              this->FreeSession();
+            return server_->LoginUser(action, socket);
 
-    // auto tasks = Service::DoubleGuardedExcept<std::vector<task>>([self]()
-    // { return Service::ExtractObjectsfromSocket(*(self->socket_)); }, "HandleSession");
-    // condition = false;
-*/
+            break;
+        case Service::ACTION::ROOM_LIST:           
+           ZyncPrint("::ROOM_LIST:");
+           return server_->GetRoomsList();
+            break;
+        }
+        return ServiceChatroomServer::MakeAnswerError("UNRECOGNIZED ACTION SERVSESSION ", __func__);
+    }
+    catch (const std::exception &ex)
+    {
+        return ServiceChatroomServer::MakeAnswerError(ex.what(), __func__);
+    }
+}

@@ -113,8 +113,9 @@ namespace ServiceChatroomServer
         {
             return *reason;
         }
-
-        if (!Service::Additional::request_directions.contains(action.at(CONSTANTS::LF_DIRECTION)))
+        
+        const auto& chk = action.at(CONSTANTS::LF_DIRECTION);
+        if (chk != CONSTANTS::RF_DIRECTION_CHATROOM && chk != CONSTANTS::RF_DIRECTION_SERVER)
         {
             return "THE DIRECTION IS NOT RECOGNIZED";
         }
@@ -139,34 +140,6 @@ namespace ServiceChatroomServer
         return std::nullopt;
     }
 
-    ///@brief Проверяет размер контейнера
-    std::optional<std::string> CHK_SizeOfContainerActionIncorrect(const task &action, size_t size)
-    {
-        if (action.size() != size)
-        {
-            return "SIZE OF " + action.at(CONSTANTS::LF_ACTION) + " IS INCORRECT EXPECTED: " + std::to_string(size);
-        }
-        return std::nullopt;
-    }
-
-    ///@brief Проверяет валидность токена и размера
-    std::optional<std::string> CHK_ActionSizeAndTokenIncorrect(const task &action, size_t size)
-    {
-
-        auto reason = CHK_SizeOfContainerActionIncorrect(action, size);
-        if (reason)
-        {
-            return *reason;
-        }
-
-        reason = CHK_FieldTokenIncorrect(action);
-        if (reason)
-        {
-            return *reason;
-        }
-        return std::nullopt;
-    };
-
 }
 
 // ПРОВЕРКА ЗАПРОСА К ЧАТРУМУ
@@ -176,7 +149,7 @@ namespace ServiceChatroomServer
     ///@brief Проверяет валидность контейнера действия послания сообщения
     std::optional<std::string> Chr_ActionSendMessageIncorrect(const task &action)
     {
-        auto reason = CHK_ActionSizeAndTokenIncorrect(action, CONSTANTS::N_SEND_MESSAGE);
+        auto reason = CHK_FieldTokenIncorrect(action); 
         if (reason)
         {
             return *reason;
@@ -198,7 +171,7 @@ namespace ServiceChatroomServer
     ///@brief Проверяет валидность контейнера действия отключения
     std::optional<std::string> Chr_ActionDisconnectIncorrect(const task &action)
     {
-        auto reason = CHK_ActionSizeAndTokenIncorrect(action, CONSTANTS::N_DISCONNECT);
+        auto reason = CHK_FieldTokenIncorrect(action);
 
         if (reason)
         {
@@ -286,14 +259,9 @@ namespace ServiceChatroomServer
     std::optional<std::string> CHK_Srv_ActionLoginIncorrect(const task &action)
     {
 
-        // ПРОВЕРКА ПОЛЕЙ ТОКЕНА И РАЗМЕРА КОНТЕЙНЕРА
-        auto reason = CHK_ActionSizeAndTokenIncorrect(action, CONSTANTS::N_LOGIN);
-        if (reason)
-        {
-            return *reason;
-        }
-
-        reason = CHK_FieldExistsAndNotEmpty(action, CONSTANTS::LF_NAME, CONSTANTS::LF_ROOMNAME, CONSTANTS::LF_PASSWORD);
+        // ПРОВЕРКА ПОЛЕЙ ТОКЕНА НЕ НУЖНА - СЕРВЕР ЕЩЕ НЕ ДАЛ ТОКЕН
+       auto reason = CHK_FieldExistsAndNotEmpty
+       (action, CONSTANTS::LF_NAME, CONSTANTS::LF_ROOMNAME, CONSTANTS::LF_PASSWORD);
         if (reason)
         {
             return *reason;
@@ -305,7 +273,7 @@ namespace ServiceChatroomServer
     std::optional<std::string> CHK_Srv_ActionGetUsersIncorrect(const task &action)
     {
 
-        auto reason = CHK_SizeOfContainerActionIncorrect(action, CONSTANTS::N_GET_USERS);
+        auto reason = CHK_FieldTokenIncorrect(action);
         if (reason)
         {
             return *reason;
@@ -318,7 +286,7 @@ namespace ServiceChatroomServer
     // ПРОВЕРКА СОЗДАНИЯ ПОЛЬЗОВАТЕЛЯ
     std::optional<std::string> CHK_Srv_ActionCreateUserIncorrect(const task &action)
     {
-        auto reason = CHK_SizeOfContainerActionIncorrect(action, CONSTANTS::N_CREATE_USER);
+        auto reason = CHK_FieldTokenIncorrect(action);
         if (reason)
         {
             return *reason;
@@ -334,7 +302,7 @@ namespace ServiceChatroomServer
     // ПРОВЕРКА СОЗДАНИЯ КОМНАТЫ
     std::optional<std::string> CHK_Srv_ActionCreateRoomIncorrect(const task &action)
     {
-        auto reason = CHK_SizeOfContainerActionIncorrect(action, CONSTANTS::N_CREATE_ROOM);
+        auto reason = CHK_FieldTokenIncorrect(action);
         if (reason)
         {
             return *reason;
@@ -348,17 +316,7 @@ namespace ServiceChatroomServer
         return std::nullopt;
     }
 
-    // ПРОВЕРКА ПОЛУЧЕНИЯ СПИСКА КОМНАТ
-    std::optional<std::string> CHK_Srv_ActionRoomListIncorrect(const task &action)
-    {
-        auto reason = CHK_SizeOfContainerActionIncorrect(action, CONSTANTS::N_ROOM_LIST);
-        if (reason)
-        {
-            return *reason;
-        }
-        return std::nullopt;
-    }
-
+    
     std::optional<std::string> CHK_Chr_CheckErrorsChatServer(const task &action)
     {
         auto reason = CHK_Srv_BaseToServerCheckIncorrect(action);
@@ -386,9 +344,6 @@ namespace ServiceChatroomServer
             reason = CHK_Srv_ActionLoginIncorrect(action);
             break;
 
-        case Service::ACTION::ROOM_LIST:
-            reason = CHK_Srv_ActionRoomListIncorrect(action);
-            break;
 
         default:
             break;

@@ -7,6 +7,7 @@ const std::string CONSTANTS::ACT_CREATE_ROOM = "CREATE_ROOM";
 const std::string CONSTANTS::ACT_ROOM_LIST = "ROOM_LIST";
 const std::string CONSTANTS::ACT_CREATE_USER = "CREATE_USER"; 
 const std::string CONSTANTS::ACT_EARLIER_MESS = "EARLIER_MESS";
+const std::string CONSTANTS::ACT_USER_MESSAGE = "ACT_USER_MESSAGE"; 
 
 // Map Parameters
 const std::string CONSTANTS::LF_ACTION = "ACTION";
@@ -21,6 +22,7 @@ const std::string CONSTANTS::LF_ROOMNAME = "ROOMNAME";
 const std::string CONSTANTS::LF_LOGIN = "LOGIN";
 const std::string CONSTANTS::LF_ROOMLIST = "ROOMLIST";
 const std::string CONSTANTS::LF_PASSWORD = "PASSWORD";
+const std::string CONSTANTS::LF_LAST_MSG = "LF_LAST_MSG"; 
 
 const std::string CONSTANTS::RF_SUCCESS = "SUCCESS";
 const std::string CONSTANTS::RF_ERROR = "ERROR";
@@ -36,21 +38,10 @@ const std::string CONSTANTS::RF_DIRECTION_CHATROOM = "DIRECTION_CHATROOM";
 
 const std::string CONSTANTS::IP = "IP"; 
 const std::string CONSTANTS::PORT = "PORT"; 
-const std::string CONSTANTS::CHATROOMS = "CHATROOMS"; 
+const std::string CONSTANTS::CHATROOMS = "DEFAULT_CHATROOMS"; 
 
-
-
-const size_t CONSTANTS::N_DISCONNECT = 3;       // direction, action, token
-const size_t CONSTANTS::N_SEND_MESSAGE = 4; // direction, action, token, message
 
 const size_t CONSTANTS::N_TOKEN_LEN = 32;
 const size_t CONSTANTS::N_MAX_MESSAGE_LEN = 512;
 
-
-const size_t CONSTANTS::N_GET_USERS = 3; // direction, action, roomname
-
-// IN WORK
-const size_t CONSTANTS::N_LOGIN = 6;   // direction, action, roomname, username, password (token adds server)
-const size_t CONSTANTS::N_CREATE_ROOM = 0; // direction, action,
-const size_t CONSTANTS::N_ROOM_LIST = 2;   // direction, action,
-const size_t CONSTANTS::N_CREATE_USER = 0; // direction, action,
+const char CONSTANTS::SERIAL_SYM = '\0';

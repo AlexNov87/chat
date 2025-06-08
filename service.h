@@ -36,8 +36,9 @@
 #include <array>
 #include <optional>
 #include <deque>
+#include <future>
 #include "const.h"
-
+#include "guardlock.h"
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
 using task = std::unordered_map<std::string, std::string>;
@@ -48,14 +49,24 @@ using strand = boost::asio::strand<boost::asio::io_context::executor_type>;
 using shared_strand = std::shared_ptr<strand>;
 using err = boost::system::error_code;
 
-template<typename... Args>
-void ZyncPrint(Args... args){
-  auto st = std::osyncstream(std::cout);
-  (... , (st << args << '\n'));
+
+#include <boost/beast.hpp>
+namespace beast = boost::beast;
+namespace http = beast::http;
+using request = http::request<http::string_body>;
+using response = http::response<http::string_body>;
+
+
+template <typename... Args>
+void ZyncPrint(Args... args)
+{
+    auto st = std::osyncstream(std::cout);
+    (..., (st << args << '\n'));
 }
 
 namespace Service
 {
+
     enum class ACTION
     {
         /*Запросы к Чат-Комнате*/
@@ -80,15 +91,9 @@ namespace Service
         static std::mutex mtx;
     };
 
-    enum class COMED_FROM
-    {
-        COMED_FROM_SERVER,
-        COMED_FROM_OLD_SOCKET
-    };
-
     ///@brief Печать Unordered_Map
     template <typename T1, typename T2>
-    void PrintUmap(std::unordered_map<T1, T2> object, std::ostream& os = std::cout)
+    void PrintUmap(std::unordered_map<T1, T2> object, std::ostream &os = std::cout)
     {
         std::lock_guard<std::mutex> lg(Additional::mtx);
         for (auto &&el : object)
@@ -98,9 +103,9 @@ namespace Service
         std::osyncstream(os) << '\n';
     }
 
-     ///@brief Печать Unordered_Map
+    ///@brief Печать Unordered_Map
     template <typename T1, typename T2>
-    void PrintUmapF(std::unordered_map<T1, T2> object, std::ofstream& os)
+    void PrintUmapF(std::unordered_map<T1, T2> object, std::ofstream &os)
     {
         for (auto &&el : object)
         {
@@ -108,20 +113,21 @@ namespace Service
         };
         os << '\n';
     }
+    struct MutableBufferHolder
+    {
+        MutableBufferHolder()
+            : data(std::make_shared<std::array<char, 2048>>()),
+              buffer(data->data(), data->size())
+        {
+        }
+        net::mutable_buffer &UseBuffer()
+        {
+            return buffer;
+        }
 
-
-
-    struct MutableBufferHolder {
-    MutableBufferHolder()
-        : data(std::make_shared<std::array<char, 2048>>()),
-          buffer(data->data(), data->size())
-    {}
-    net::mutable_buffer& UseBuffer(){
-        return buffer;
-    }
     private:
-    std::shared_ptr<std::array<char, 2048>> data;
-    net::mutable_buffer buffer;
+        std::shared_ptr<std::array<char, 2048>> data;
+        net::mutable_buffer buffer;
     };
 
     ///@brief Сериализатор Unordered_Map
@@ -132,7 +138,7 @@ namespace Service
         boost::archive::text_oarchive arch(strm);
         arch << object;
         std::string st = strm.str();
-        strm << '\n';
+        strm << CONSTANTS::SERIAL_SYM;
         return strm.str();
     }
 
@@ -146,9 +152,6 @@ namespace Service
         arch >> umap;
         return umap;
     }
-
-    ///@brief Запускает контекст в многопоточном режиме
-    void MtreadRunContext(net::io_context &ioc);
 
     class PassHasher
     {
@@ -181,6 +184,13 @@ namespace Service
     }
     ///@brief Читает из файла в string
     std::string ReadFromFstream(std::ifstream &ifs);
+    ///@brief Запускает контекст в многопоточном режиме
+    void MtreadRunContext(net::io_context &ioc);
+}
+
+
+namespace Service
+{
     ///@brief Проверяет жив ли сокет
     bool IsAliveSocket(tcp::socket &sock);
     bool IsAliveSocket(shared_socket sock);
@@ -192,15 +202,27 @@ namespace Service
     task ExtractObjectsfromBuffer(net::streambuf &buffer, size_t extract);
     ///@brief Извлекает список полученыых обьектов из буфера в виде shared_ptr
     shared_task ExtractSharedObjectsfromBuffer(net::streambuf &buffer, size_t extract);
-
+    std::string ExtractStrFromStreambuf(net::streambuf &buffer, size_t extract);
     shared_strand MakeSharedStrand(net::io_context &ioc);
-    template<typename T>
-    shared_socket MakeSharedSocket(T& executor){
-        return std::make_shared<tcp::socket>(executor); 
+    
+    template <typename T>
+    shared_socket MakeSharedSocket(T &executor)
+    {
+        return std::make_shared<tcp::socket>(executor);
     }
-
-    std::shared_ptr<MutableBufferHolder> MakeSharedMutableGuffer();
+    std::shared_ptr<MutableBufferHolder> MakeSharedMutableBuffer();
     std::shared_ptr<net::streambuf> MakeSharedStreambuf();
+
+    template<typename T>
+    shared_task ExtractSharedObjectsfromRequestOrResponce(T&req)
+    {
+        task action = Service::DeserializeUmap<std::string, std::string>(req.body());
+        return std::make_shared<task>(std::move(action));
+    };
+
+    std::shared_ptr<beast::flat_buffer> MakeSharedFlatBuffer();
+    request MakeRequest(http::verb verb, int version, std::string body);
+    response MakeResponce(int version, bool keep_alive, beast::http::status status, std::string body);
 }
 
 namespace ServiceChatroomServer
@@ -208,9 +230,6 @@ namespace ServiceChatroomServer
     std::optional<std::string> CHK_ServerLoadObject(const boost::json::value &obj);
     ///@brief Создать о
     std::string MakeAnswerError(std::string reason, std::string initiator);
-    ///@brief  Написаить ошибку в сокет
-    void WriteErrorToSocket(tcp::socket &socket, std::string reason, std::string initiator);
-    void WriteErrorToSocket(shared_socket socket, std::string reason, std::string initiator);
     ///@brief Проверяет валидно ли поле "направление"
     std::optional<std::string> CHK_FieldDirectionIncorrect(const task &action);
     ///@brief Проверяет валиден ли запрос к чатруму
@@ -225,13 +244,15 @@ namespace ServiceChatroomServer
     ///@brief Успешное получение списка юзеров
     std::string Srv_MakeSuccessGetUsers(std::string userlist);
     ///@brief Успешный вход в систему
-    std::string Srv_MakeSuccessLogin(std::string token, std::string roomname);
+    std::string Srv_MakeSuccessLogin(std::string token, std::string roomname, std::string lastmsg);
     ///@brief Успешное создание пользователя
     std::string Srv_MakeSuccessCreateUser(std::string name);
     ///@brief Успешное создание комнаты
     std::string Srv_MakeSuccessCreateRoom(std::string name);
     ///@brief Успешное получение списка комнат
     std::string Srv_MakeSuccessRoomList(std::string roomlist);
+    // ОТВЕТ СЕРВЕРА НА УСПЕШНОЕ ПОЛУЧЕНИЕ СООБЩЕНИЯ ЮЗЕРА
+    std::string Chr_MakeSuccessUserMessage(std::string username, std::string msg);
 
 }
 

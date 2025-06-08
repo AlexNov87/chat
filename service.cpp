@@ -3,7 +3,6 @@ using namespace std;
 
 namespace Service
 {
-
     const std::unordered_map<std::string, ACTION> Additional::action_scernario{
         {CONSTANTS::ACT_CREATE_ROOM, ACTION::CREATE_ROOM},
         {CONSTANTS::ACT_CREATE_USER, ACTION::CREATE_USER},
@@ -23,7 +22,7 @@ namespace Service
     const std::unordered_set<std::string> Service::Additional::request_directions{
         CONSTANTS::RF_DIRECTION_SERVER, CONSTANTS::RF_DIRECTION_CHATROOM};
 
-        std::mutex Service::Additional::mtx;
+    std::mutex Service::Additional::mtx;
 
     void MtreadRunContext(net::io_context &ioc)
     {
@@ -58,9 +57,9 @@ namespace Service
     {
         return std::make_shared<strand>(net::make_strand(ioc));
     }
-    std::shared_ptr<MutableBufferHolder> MakeSharedMutableGuffer()
+    std::shared_ptr<MutableBufferHolder> MakeSharedMutableBuffer()
     {
-       return std::shared_ptr<Service::MutableBufferHolder>();
+        return std::shared_ptr<Service::MutableBufferHolder>();
     };
     std::shared_ptr<net::streambuf> MakeSharedStreambuf()
     {
@@ -71,35 +70,9 @@ namespace Service
 
 namespace Service
 {
-
     bool IsAliveSocket(tcp::socket &sock)
     {
-        if (!sock.is_open())
-        {
-            return false;
-        }
-        boost::system::error_code ec;
-        char data;
-        size_t len = sock.receive(boost::asio::buffer(&data, 1), boost::asio::socket_base::message_peek, ec);
-
-        if (ec)
-        {
-
-            if (ec == boost::asio::error::would_block || boost::asio::error::try_again)
-            {
-                return true;
-            }
-            if (ec == boost::asio::error::eof)
-            {
-                return false;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        // Данные доступны для чтения — соединение живо
-        return len > 0;
+        return sock.is_open();   
     }
 
     bool IsAliveSocket(shared_socket sock)
@@ -137,20 +110,46 @@ namespace Service
     std::string ExtractStrFromStreambuf(net::streambuf &buffer, size_t extract)
     {
         const char *data = boost::asio::buffer_cast<const char *>(buffer.data());
-        return std::string(data, extract);
+        std::string str(data, extract);
+        boost::algorithm::trim(str);
+        return str;
     }
-
-    
 
     task ExtractObjectsfromBuffer(net::streambuf &buffer, size_t extract)
     {
         std::string str(ExtractStrFromStreambuf(buffer, extract));
-        return DeserializeUmap<std::string,std::string>(str);
+        return DeserializeUmap<std::string, std::string>(str);
     };
     shared_task ExtractSharedObjectsfromBuffer(net::streambuf &buffer, size_t extract)
     {
         std::string str(ExtractStrFromStreambuf(buffer, extract));
-        return std::make_shared<task>(DeserializeUmap<std::string,std::string>(str));
+        return std::make_shared<task>(DeserializeUmap<std::string, std::string>(str));
     };
+
+    std::shared_ptr<beast::flat_buffer> MakeSharedFlatBuffer()
+    {
+        return std::make_shared<beast::flat_buffer>();
+    };
+
+    request MakeRequest(http::verb verb, int version, std::string body)
+    {
+        request req{verb, "/s/d/d/", version};
+        req.set(boost::beast::http::field::host, "127.0.0.1");
+        req.set(boost::beast::http::field::content_type, "text/html");
+        req.body() = std::move(body);
+        req.keep_alive(true);
+        req.prepare_payload();
+        return req;
+    };
+
+    response MakeResponce(int version, bool keep_alive, beast::http::status status, std::string body)
+    {
+        response resp{status, version};
+        resp.keep_alive(keep_alive);
+        resp.set(boost::beast::http::field::content_type, "text/html");
+        resp.body() = std::move(body);
+        resp.prepare_payload();
+        return resp;
+    }
 
 }

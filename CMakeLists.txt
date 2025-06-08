@@ -16,11 +16,8 @@ const.h const.cpp
 service.h service.cpp 
 service_action_check.cpp
 tokenizer.h tokenizer.cpp 
-service_action_check.cpp
-server_responce.cpp
-server_session.cpp
-connection.h
-connection.cpp
+guardlock.cpp
+guardlock.h
 )
 
 set(u
@@ -28,9 +25,16 @@ user_foo.cpp
 )
 
 set(cliserv 
-srv.h chatroom.cpp 
-chatroomsess.cpp maisservsess.cpp
+srv.h 
+chatroom.cpp 
+
+abstract_sess.cpp
+chatroomsess.cpp 
+server_session.cpp
+
 mainserv.cpp
+server_responce.cpp
+mainserv_operations.cpp
 )
 
 set(vars
