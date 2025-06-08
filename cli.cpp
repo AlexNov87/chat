@@ -5,6 +5,8 @@
 
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
+int port = 1601;
+
 
 std::shared_ptr<std::ofstream> ofs = std::make_shared<std::ofstream>("log!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!.txt");
 
@@ -12,7 +14,7 @@ net::io_context ioc(16);
 shared_strand strand__ = Service::MakeSharedStrand(ioc);
 shared_socket socket__ = Service::MakeSharedSocket(ioc);
 boost::system::error_code ec;
-auto endpoint = tcp::endpoint(net::ip::make_address("127.0.0.1"), 80);
+auto endpoint = tcp::endpoint(net::ip::make_address("127.0.0.1"), 1601);
 std::mutex mtx;
 
 void InitSocket(){
@@ -118,7 +120,7 @@ test2(){
 
   };
   
-  for(int q = 0; q< 2; ++q){
+  for(int q = 0; q< 1; ++q){
    for(int i = 0; i< o.size(); ++i){
       net::write(*socket__, net::buffer(o[i]));
    }
@@ -132,7 +134,7 @@ int main()
    InitSocket();  // сначала подключаемся
    Read();       // затем запускаем чтение
    
-     for(int q = 0; q< 2;){
+     for(int q = 0; q< 1; q++){
    test1();
    }
   

@@ -16,10 +16,14 @@ protected:
     std::atomic_bool condition = true;
     net::steady_timer timer_;
     std::deque<std::string> mess_queue_;
+    std::atomic_bool keep_sess_ = true;
     virtual std::string GetStringResponceToSocket(shared_task action) = 0;
 
 public:
     void HandleSession(bool need_check = true);
+    void FreeSession(){
+           keep_sess_ = false;
+    }
 };
 
 class Chatroom

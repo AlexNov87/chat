@@ -23,8 +23,9 @@ void Chatroom::AwaitSocket(const std::string &token)
         auto socket = users_.at(token).socket_;
         auto strand = users_.at(token).strand_;
         auto buffer = Service::MakeSharedStreambuf();
-        auto lam = [&, socket, strand, buffer](err ec, std::size_t bytes)
+        auto lam = [&,token, socket, strand, buffer](err ec, std::size_t bytes)
         {
+            ZyncPrint("LAM..................", token);
             if (!ec)
             {
                 auto action = Service::ExtractSharedObjectsfromBuffer(*buffer, bytes);
