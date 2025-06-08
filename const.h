@@ -11,6 +11,7 @@ struct CONSTANTS
     static const std::string ACT_ROOM_LIST;
     static const std::string ACT_CREATE_USER;
     static const std::string ACT_EARLIER_MESS;
+    static const std::string ACT_USER_MESSAGE; 
 
     // Map Parameters
     static const std::string LF_ACTION;

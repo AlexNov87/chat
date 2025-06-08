@@ -7,6 +7,7 @@ const std::string CONSTANTS::ACT_CREATE_ROOM = "CREATE_ROOM";
 const std::string CONSTANTS::ACT_ROOM_LIST = "ROOM_LIST";
 const std::string CONSTANTS::ACT_CREATE_USER = "CREATE_USER"; 
 const std::string CONSTANTS::ACT_EARLIER_MESS = "EARLIER_MESS";
+const std::string CONSTANTS::ACT_USER_MESSAGE = "ACT_USER_MESSAGE"; 
 
 // Map Parameters
 const std::string CONSTANTS::LF_ACTION = "ACTION";

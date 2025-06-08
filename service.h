@@ -50,6 +50,13 @@ using shared_strand = std::shared_ptr<strand>;
 using err = boost::system::error_code;
 
 
+#include <boost/beast.hpp>
+namespace beast = boost::beast;
+namespace http = beast::http;
+using request = http::request<http::string_body>;
+using response = http::response<http::string_body>;
+
+
 template <typename... Args>
 void ZyncPrint(Args... args)
 {
@@ -146,9 +153,6 @@ namespace Service
         return umap;
     }
 
-    ///@brief Запускает контекст в многопоточном режиме
-    void MtreadRunContext(net::io_context &ioc);
-
     class PassHasher
     {
         std::hash<std::string> hasher{};
@@ -180,6 +184,13 @@ namespace Service
     }
     ///@brief Читает из файла в string
     std::string ReadFromFstream(std::ifstream &ifs);
+    ///@brief Запускает контекст в многопоточном режиме
+    void MtreadRunContext(net::io_context &ioc);
+}
+
+
+namespace Service
+{
     ///@brief Проверяет жив ли сокет
     bool IsAliveSocket(tcp::socket &sock);
     bool IsAliveSocket(shared_socket sock);
@@ -192,8 +203,8 @@ namespace Service
     ///@brief Извлекает список полученыых обьектов из буфера в виде shared_ptr
     shared_task ExtractSharedObjectsfromBuffer(net::streambuf &buffer, size_t extract);
     std::string ExtractStrFromStreambuf(net::streambuf &buffer, size_t extract);
-
     shared_strand MakeSharedStrand(net::io_context &ioc);
+    
     template <typename T>
     shared_socket MakeSharedSocket(T &executor)
     {
@@ -201,6 +212,17 @@ namespace Service
     }
     std::shared_ptr<MutableBufferHolder> MakeSharedMutableBuffer();
     std::shared_ptr<net::streambuf> MakeSharedStreambuf();
+
+    template<typename T>
+    shared_task ExtractSharedObjectsfromRequestOrResponce(T&req)
+    {
+        task action = Service::DeserializeUmap<std::string, std::string>(req.body());
+        return std::make_shared<task>(std::move(action));
+    };
+
+    std::shared_ptr<beast::flat_buffer> MakeSharedFlatBuffer();
+    request MakeRequest(http::verb verb, int version, std::string body);
+    response MakeResponce(int version, bool keep_alive, beast::http::status status, std::string body);
 }
 
 namespace ServiceChatroomServer
@@ -229,6 +251,8 @@ namespace ServiceChatroomServer
     std::string Srv_MakeSuccessCreateRoom(std::string name);
     ///@brief Успешное получение списка комнат
     std::string Srv_MakeSuccessRoomList(std::string roomlist);
+    // ОТВЕТ СЕРВЕРА НА УСПЕШНОЕ ПОЛУЧЕНИЕ СООБЩЕНИЯ ЮЗЕРА
+    std::string Chr_MakeSuccessUserMessage(std::string username, std::string msg);
 
 }
 

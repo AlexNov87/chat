@@ -151,4 +151,30 @@ namespace Service
         return std::make_shared<task>(DeserializeUmap<std::string, std::string>(str));
     };
 
+    std::shared_ptr<beast::flat_buffer> MakeSharedFlatBuffer()
+    {
+        return std::make_shared<beast::flat_buffer>();
+    };
+
+    request MakeRequest(http::verb verb, int version, std::string body)
+    {
+        request req{verb, "/s/d/d/", version};
+        req.set(boost::beast::http::field::host, "127.0.0.1");
+        req.set(boost::beast::http::field::content_type, "text/html");
+        req.body() = std::move(body);
+        req.keep_alive(true);
+        req.prepare_payload();
+        return req;
+    };
+
+    response MakeResponce(int version, bool keep_alive, beast::http::status status, std::string body)
+    {
+        response resp{status, version};
+        resp.keep_alive(keep_alive);
+        resp.set(boost::beast::http::field::content_type, "text/html");
+        resp.body() = std::move(body);
+        resp.prepare_payload();
+        return resp;
+    }
+
 }
