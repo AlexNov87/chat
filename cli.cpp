@@ -112,10 +112,10 @@ test2(){
      
      // UserInterface::US_ChrMakeSendMessage(gen.GenerateHEXToken(), "22sssssssswdqeefvqwef222222222222222222222222222222"),
      // UserInterface::US_ChrMakeObjDisconnect(gen.GenerateHEXToken()),
-      UserInterface::US_SrvMakeObjCreateRoom("YANDEX"),
-      UserInterface::US_SrvMakeObjCreateUser("RRAT", "hjsjklk;l"),
-      UserInterface::US_SrvMakeObjGetUsers("YANDEX"),
-    //  UserInterface::US_SrvMakeObjLogin("RRAT", "jijjiw", "kjjolpdpw"),
+    // UserInterface::US_SrvMakeObjCreateRoom("YANDEX"),
+     // UserInterface::US_SrvMakeObjCreateUser("RRAT", "hjsjklk;l"),
+    //  UserInterface::US_SrvMakeObjGetUsers("YANDEX"),
+      UserInterface::US_SrvMakeObjLogin("RRAT", "jijjiw", "YANDEX"),
       UserInterface::US_SrvMakeObjRoomList()
 
   };

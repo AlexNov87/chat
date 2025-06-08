@@ -33,6 +33,10 @@ std::string MainServer::LoginUser(shared_task action, shared_socket socket)
         last_messages = room->msg_man_.LastMessages();
         // УДАЛОСЬ ЛИ ДОБАВТЬ
         bool added = room->AddUser(socket, name, token);
+
+        if(added){
+           token_rooms_[token] = room;
+        }
         
         }//конец блокировки
         

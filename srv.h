@@ -56,6 +56,7 @@ class Chatroom
     MainServer *mainserv_;
     net::io_context &ioc_;
     std::unordered_map<std::string, Chatuser> users_;
+    
 
     std::condition_variable cond_;
     booltype modyfiing_users = false;
@@ -107,6 +108,7 @@ class MainServer
     tcp::endpoint endpoint_;
     Service::TokenGen tokezier_;
     std::unordered_map<std::string, std::shared_ptr<Chatroom>> rooms_;
+    std::unordered_map<std::string, std::shared_ptr<Chatroom>> token_rooms_;
     Syncro sync_;
 
     // В работе....

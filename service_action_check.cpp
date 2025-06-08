@@ -113,8 +113,9 @@ namespace ServiceChatroomServer
         {
             return *reason;
         }
-
-        if (!Service::Additional::request_directions.contains(action.at(CONSTANTS::LF_DIRECTION)))
+        
+        const auto& chk = action.at(CONSTANTS::LF_DIRECTION);
+        if (chk != CONSTANTS::RF_DIRECTION_CHATROOM && chk != CONSTANTS::RF_DIRECTION_SERVER)
         {
             return "THE DIRECTION IS NOT RECOGNIZED";
         }
