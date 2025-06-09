@@ -1,4 +1,5 @@
 #include"srv.h"
+std::atomic_int AbstractSession::exempslars = 0;
 void AbstractSession::HandleSession(bool need_check)
 {
     //ПРОВЕРЯЕМ ЖИВ ЛИ СОКЕТ
@@ -13,18 +14,19 @@ void AbstractSession::HandleSession(bool need_check)
                               {
                                   //ИЗВЛЕКАЕМ ЗНАЧЕНИЕ 
                                   auto action = Service::ExtractSharedObjectsfromRequestOrResponce(self->request_);
+                                  //ЧИСТА БУФЕРА
+                                  self->readbuf_.consume(bytes);
                                   
                                   std::string responce_body;
                                   responce_body = self->GetStringResponceToSocket(action);
                                   if(responce_body.empty()){return;}
-                                  //ЧИСТА БУФЕРА
-                                  self->readbuf_.consume(bytes);
+                                  
                                   
                                   //КЛАДЕМ В ОЧЕРЕДЬ???
                                   self->mess_queue_.push_back(responce_body);
 
                                   auto resobj = Service::DeserializeUmap<std::string, std::string>(responce_body);
-                                  Service::PrintUmap(resobj);
+                                 // Service::PrintUmap(resobj);
                                   
                                   http::status stat = http::status::ok;
                                   

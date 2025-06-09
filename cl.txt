@@ -156,9 +156,9 @@ void Read()
     ZyncPrint("LAMPDA READ...............");
     if (ec)
     {
-      ZyncPrint("LAMPDA MIST...............");
-      ZyncPrint(ec.what(), "BODY",  req->body());
-      
+      ZyncPrint(ec.what());
+      system("pause");
+      return;
     }
 
     // ZyncPrint("->" + Service::ExtractStrFromStreambuf(*sb, bytes) + "<-");
@@ -175,18 +175,17 @@ void test3()
 
   Do2(socket__, UserInterface::US_SrvMakeObjLogin("RRAT", "jijjiw", "YANDEX"));
   Do2(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDEX"));
-  Do2(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDEX"));
+  
 };
 
 int main()
 {
   InitSocket(*socket__);
-  
- std::jthread([]{Read();});
- 
+  Read();
+ //  Service::MtreadRunContext(ioc);  
   
   net::post(ioc,[]{ test3();});
-  Service::MtreadRunContext(ioc);  
+  ioc.run();
 
   // запуск ioc
  

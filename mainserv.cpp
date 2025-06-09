@@ -28,10 +28,12 @@ void MainServer::init()
         auto ip = obj.as_object().at(CONSTANTS::IP).as_string();
         auto port = obj.as_object().at(CONSTANTS::PORT).as_int64();
 
-        std::cout << ip << " |" << port << "|\n";
+        std::cout<<"|" << ip << " |" << port << "|\n";
+        err ec;
         endpoint_ = tcp::endpoint(net::ip::make_address(ip), port);
 
-        acceptor_.open(endpoint_.protocol());
+        
+        acceptor_.open(endpoint_.protocol() , ec);
         acceptor_.set_option(net::socket_base::reuse_address(true));
         acceptor_.bind(endpoint_);
         acceptor_.listen(net::socket_base::max_listen_connections);
@@ -44,6 +46,7 @@ void MainServer::init()
                 this->CreateRoom(std::string(room.as_string()));
             }
         }
+      
     }
     catch (const std::exception &ex)
     {
@@ -65,12 +68,13 @@ void MainServer::Listen()
              (this, std::make_shared<tcp::socket>(std::move(socket)),
                Service::MakeSharedStrand(this->ioc_)); 
              servsess->HandleSession();
-             Listen(); });
+             
+             
+             Listen();});
 }
 
 MainServer::MainServer(net::io_context &ioc) : ioc_(ioc), acceptor_(net::make_strand(ioc_))
 {
-    init();
 }
 
 void MainServer::PrintRooms()

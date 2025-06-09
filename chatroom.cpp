@@ -16,82 +16,8 @@ bool Chatroom::HasToken(const std::string &token)
     return has_token;
 }
 
-void Chatroom::AwaitSocket(const std::string &token)
-{
-    try
-    {
-        ZyncPrint("LAM..................AWAITSOCKET    FOO............", token);
-        auto socket = users_.at(token).socket_;
-        auto strand = users_.at(token).strand_;
-        std::shared_ptr<request> req = std::make_shared<request>();
-        auto buf = std::make_shared<beast::flat_buffer>();
-        auto self = shared_from_this();
-        ZyncPrint(" INIT COMPLETE ---------------------------> ");
-
-        auto lam = [self, token, socket, strand, req, buf](err ec, std::size_t bytes)
-        {
-            if (ec)
-            {
-                ZyncPrint("ERRRR-->", ec.what());
-                socket->close(ec);
-                ZyncPrint("ERRRR-->", ec.what());
-              //  return;
-            }
-
-            ZyncPrint("LAM..................AWAITSOCKET............", token);
-          
-                auto action = Service::ExtractSharedObjectsfromRequestOrResponce(*req);
-                ZyncPrint("LAM........ACT");
-                Service::PrintUmap(*action);
-
-                // ПРОВЕРЯЕМ НАПРАВЛЕНИЕ ЗАДАЧИ (есть ли ошибка в поле "направление задачи")
-                auto direction_err = ServiceChatroomServer::CHK_FieldDirectionIncorrect(*action);
-                // ПРОВЕРЯЕМ НАПРАВЛЕНИЕ
-                if (direction_err)
-                {
-                    // Постим в последовательный исполнитель юзера асинхронную запись в его сокет
-                    net::post(*strand, [self, socket, token, error = *direction_err]()
-                              { net::async_write(*socket, net::buffer(ServiceChatroomServer::MakeAnswerError(std::move(error), __func__)), [self, token, socket](err ec, size_t bytes)
-                                                 {
-                             //Переводим сокет юзера в режим ожидания
-                            self-> AwaitSocket(token); }); });
-                }
-                // ЕСЛИ ЗАДАЧА ОТНОСИТСЯ К ЧАТ-РУМУ
-                if (action->at(CONSTANTS::LF_DIRECTION) == CONSTANTS::RF_DIRECTION_CHATROOM)
-                {
-                    ZyncPrint("CHATROOM TASK........");
-                    //  auto chrsess = std::make_shared<ChatRoomSession>(*self, socket, strand);
-                }
-                else
-                {
-                     ZyncPrint("SERVER TASK........");
-                    // ЕСЛИ ЗАДАЧА ОТНОСИТСЯ К CЕРВЕРУ
-                    //   auto servsessptr = std::make_shared<MainServer::ServerSession>(self->mainserv_, socket, strand);
-                    //    servsessptr->HandleSession();
-                }
-            
-        };
-        //   ZyncPrint("TRY WRITE..........");
-        //   auto rsp =  Service::MakeResponce(11, true, http::status::ok, ServiceChatroomServer::MakeAnswerError("TEST", "TEST"));
-        //   err ecx;
-        //   http::write(*socket, rsp, ecx);
-        //   http::write(*socket, rsp, ecx);
-        //    http::write(*socket, rsp, ecx);
-        //    http::write(*socket, rsp, ecx);
-        //   if(ecx){
-        //      ZyncPrint("ECX--------------->", ecx.message());
-        //   }
-
-        ZyncPrint("ASYNC READING............................");
-        http::async_read(*socket, *buf, *req, lam);
-    }
-    catch (const std::exception &ex)
-    {
-        ZyncPrint(ex.what());
-    }
-}
-
-bool Chatroom::AddUser(shared_socket socket, std::string name, std::string token)
+void Chatroom::AddUser(shared_socket socket, std::string name, 
+std::string token)
 {
     {
         /* Обязательно область видимости!!! Service::GuardLock
@@ -99,23 +25,24 @@ bool Chatroom::AddUser(shared_socket socket, std::string name, std::string token
             */
         // Дождется пока добавляются или удаляются юзеры, запретит удалять или добавлять.
         Service::GuardLockAnotherAwait(do_not_allow_modify_users, mut_users_, cond_, modyfiing_users).Lock();
-        users_.insert({token, Chatuser(std::move(name), ioc_, socket)});
+        users_.insert({token, std::make_unique<Chatuser>(this, std::move(name), socket , mainserv_->ioc_)});
     }
     // ЛОГИРУЕМ СИТЕМНОЕ СООБЩЕНИЕ
-    msg_man_.ServiceMessage(users_.at(token).name_ + " IS CONNECTED");
+ //   msg_man_.ServiceMessage(users_.at(token).name_ + " IS CONNECTED");
     //  ZyncPrint("ADDPOST.....................B");
 
-    // Постим в последовательный исполгитель юзера асинххронное прослушивание его сокета
-    net::post(*users_.at(token).strand_, [self = shared_from_this(), token, socket]
-              { 
-                 auto rsp =  Service::MakeResponce(11, true, http::status::ok, ServiceChatroomServer::MakeAnswerError("TEST", "TEST"));
-                 err ecx;
-                 http::async_write(*socket, rsp,[token, self](err ec, size_t bytes){
-                      self-> AwaitSocket(token);
-                 });
-        });
-    //  ZyncPrint("ADDPOST.....................E");
-    return true;
+    // auto lam = [self = shared_from_this(), token, socket]
+    // {
+    //     auto rsp = Service::MakeResponce(11, true, http::status::ok, ServiceChatroomServer::Srv_MakeSuccessLogin(token, "RMNAME", "NONE"));
+    //     http::async_write(*socket, rsp, [self, token](err ec, size_t bytes){
+    //       //  self->AwaitSocket(token);
+    //     });
+        
+    // };
+   
+    //     for(int i = 0; i< 5; ++i){
+    //     net::post(*users_.at(token).strand_, lam);
+    // }
 }
 
 void Chatroom::SendMessages(const std::string &token, const std::string &message)
@@ -128,26 +55,26 @@ void Chatroom::SendMessages(const std::string &token, const std::string &message
     {
         return;
     }
-    std::cout << users_.at(token).name_ << " : " << message << '\n';
+    std::cout << users_.at(token)->name_ << " : " << message << '\n';
 
     // Рассылка
     for (auto &&[token, chatuser] : users_)
     {
         // Если сокет недоступен
-        if (!Service::IsAliveSocket(chatuser.socket_))
+        if (!Service::IsAliveSocket(chatuser->socket_))
         {
             continue;
         }
-        // Постим в последовательный исполнитель юзера асинхронную запись в его сокет
-        net::post(*chatuser.strand_, [&, socket = users_.at(token).socket_, token, buf = net::buffer(message)]()
-                  { net::async_write(*socket, std::move(buf), [&, token, socket](err ec, size_t bytes)
-                                     {
-                             //Переводим сокет юзера в режим ожидания
-                             AwaitSocket(token); }); });
+        // // Постим в последовательный исполнитель юзера асинхронную запись в его сокет
+        // net::post(*chatuser.strand_, [&, socket = users_.at(token).socket_, token, buf = net::buffer(message)]()
+        //           { net::async_write(*socket, std::move(buf), [&, token, socket](err ec, size_t bytes)
+        //                              {
+        //                      //Переводим сокет юзера в режим ожидания
+        //                     }); });
     };
 }
 
-void Chatroom::DeleteUser(const std::string &token)
+void Chatroom::DeleteUser(std::string token)
 {
     // Дождется пока постятся рассылки сообщений и запретит временно рассылку
     Service::GuardLockAnotherAwait(modyfiing_users, mut_users_, cond_, do_not_allow_modify_users).Lock();
@@ -167,7 +94,7 @@ std::string Chatroom::RoomMembers()
         Service::GuardLockConditional(do_not_allow_modify_users, mut_users_, cond_).Lock();
         for (auto &&[token, chatuser] : users_)
         {
-            oss << '"' << chatuser.name_ << '"';
+            oss << '"' << chatuser->name_ << '"';
             ++nowpos;
             if (nowpos == users_.size() - 1)
             {
