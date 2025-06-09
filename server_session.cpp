@@ -1,21 +1,22 @@
 #include "srv.h"
 
-std::string MainServer::ServerSession::GetStringResponceToSocket(shared_task action)
+std::atomic_int ServerSession::exempslars_s = 0;
+std::string ServerSession::GetStringResponceToSocket(shared_task action)
 {
     auto reason = ServiceChatroomServer::CHK_Chr_CheckErrorsChatServer(*action);
     if (reason)
     {
-        return ServiceChatroomServer::MakeAnswerError(*reason, __func__);
+        return ServiceChatroomServer::MakeAnswerError(*reason, __func__ , "" );
     }
     return ExectuteReadySession(action, socket_);
 }
 
-void MainServer::ServerSession::ExecuteTask(shared_task action)
+void ServerSession::ExecuteTask(shared_task action)
 {
     ExectuteReadySession(action, socket_);
 }
 
-std::string MainServer::ServerSession::ExectuteReadySession(shared_task action, shared_socket socket)
+std::string ServerSession::ExectuteReadySession(shared_task action, shared_socket socket)
 {
     try
     {
@@ -31,7 +32,7 @@ std::string MainServer::ServerSession::ExectuteReadySession(shared_task action, 
             return server_->AddUserToSQL(action->at(CONSTANTS::LF_NAME), action->at(CONSTANTS::LF_PASSWORD));
             break;
         case Service::ACTION::GET_USERS:            
-             ZyncPrint("GET_USERS:");
+            ZyncPrint("GET_USERS:");
             return server_->GetRoomUsersList(action->at(CONSTANTS::LF_ROOMNAME));
             break;
         case Service::ACTION::LOGIN:           
@@ -41,12 +42,12 @@ std::string MainServer::ServerSession::ExectuteReadySession(shared_task action, 
         case Service::ACTION::ROOM_LIST:           
            ZyncPrint("::ROOM_LIST:");
            return server_->GetRoomsList();
-            break;
+           break;
         }
-        return ServiceChatroomServer::MakeAnswerError("UNRECOGNIZED ACTION SERVSESSION ", __func__);
+        return ServiceChatroomServer::MakeAnswerError("UNRECOGNIZED ACTION SERVSESSION ", __func__ ,"");
     }
     catch (const std::exception &ex)
     {
-        return ServiceChatroomServer::MakeAnswerError(ex.what(), __func__);
+        return ServiceChatroomServer::MakeAnswerError(ex.what(), __func__ , "");
     }
 }

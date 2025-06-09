@@ -22,6 +22,7 @@ guardlock.h
 
 set(u
 user_foo.cpp
+___testcli.h
 )
 
 set(cliserv 

@@ -3,12 +3,13 @@ using namespace std;
 namespace ServiceChatroomServer
 {
     // ОТВЕТ СЕРВЕРА НА ОШИБКУ
-    std::string MakeAnswerError(std::string reason, string initiator)
+    std::string MakeAnswerError(std::string reason, string initiator, std::string action)
     {
         unordered_map<string, string> res{
             {CONSTANTS::LF_RESULT, CONSTANTS::RF_ERROR},
             {CONSTANTS::LF_REASON, std::move(reason)},
-            {CONSTANTS::LF_INITIATOR, std::move(initiator)}};
+            {CONSTANTS::LF_INITIATOR, std::move(initiator)},
+            {CONSTANTS::LF_ACTION, std::move(action)}};
         return Service::SerializeUmap(res);
     };
 }
@@ -82,9 +83,9 @@ namespace ServiceChatroomServer
         return Service::SerializeUmap<std::string, std::string>(res);
     };
 
-   // ОТВЕТ СЕРВЕРА НА УСПЕШНОЕ ПОЛУЧЕНИЕ ПРЕДЫДУЩИХ СООБЩЕНИЙ
+    // ОТВЕТ СЕРВЕРА НА УСПЕШНОЕ ПОЛУЧЕНИЕ ПРЕДЫДУЩИХ СООБЩЕНИЙ
     std::string Chr_MakeSuccessLastMessages(std::string msglist)
-     {
+    {
         task res = GetSuccess();
         res[CONSTANTS::LF_ACTION] = CONSTANTS::ACT_EARLIER_MESS;
         res[CONSTANTS::LF_MESSAGE] = std::move(msglist);
@@ -93,7 +94,7 @@ namespace ServiceChatroomServer
 
     // ОТВЕТ СЕРВЕРА НА УСПЕШНОЕ ПОЛУЧЕНИЕ СООБЩЕНИЯ ЮЗЕРА
     std::string Chr_MakeSuccessUserMessage(std::string username, std::string msg)
-     {
+    {
         task res = GetSuccess();
         res[CONSTANTS::LF_ACTION] = CONSTANTS::ACT_USER_MESSAGE;
         res[CONSTANTS::LF_NAME] = std::move(username);

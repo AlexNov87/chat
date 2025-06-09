@@ -229,7 +229,7 @@ namespace ServiceChatroomServer
 {
     std::optional<std::string> CHK_ServerLoadObject(const boost::json::value &obj);
     ///@brief Создать о
-    std::string MakeAnswerError(std::string reason, std::string initiator);
+    std::string MakeAnswerError(std::string reason, std::string initiator,std::string action);
     ///@brief Проверяет валидно ли поле "направление"
     std::optional<std::string> CHK_FieldDirectionIncorrect(const task &action);
     ///@brief Проверяет валиден ли запрос к чатруму

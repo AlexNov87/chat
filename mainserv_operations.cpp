@@ -9,7 +9,7 @@ std::string MainServer::LoginUser(shared_task action, shared_socket socket)
         // ЕСЛИ АВТОРИЗОВАН
         if (!IsAutorizatedUser(name, pass))
         {
-            return ServiceChatroomServer::MakeAnswerError("YOU ARE NOT AUTHORIZED", __func__);
+            return ServiceChatroomServer::MakeAnswerError("YOU ARE NOT AUTHORIZED", __func__ , CONSTANTS::ACT_LOGIN);
         }
         // Генерируем токен
         std::string token = tokezier_.GenerateHEXToken();
@@ -25,32 +25,22 @@ std::string MainServer::LoginUser(shared_task action, shared_socket socket)
         std::string &roomname = action->at(CONSTANTS::LF_ROOMNAME);
         if (!rooms_.count(roomname) > 0)
         {
-            return ServiceChatroomServer::MakeAnswerError("NO ROOM: " + roomname, __func__);
+            return ServiceChatroomServer::MakeAnswerError("NO ROOM: " + roomname, __func__ , CONSTANTS::ACT_LOGIN);
         };
-        auto room = rooms_.at(roomname);
+       auto room = rooms_.at(roomname);
         
         //Послелние сообщения комнтаты
         last_messages = room->msg_man_.LastMessages();
         // УДАЛОСЬ ЛИ ДОБАВТЬ
-        bool added = room->AddUser(socket, name, token);
-
-        if(added){
-           token_rooms_[token] = room;
-        }
-        
+         room->AddUser(socket, name, token);
+         
+         return "";
         }//конец блокировки
         
-        if (added)
-        {
-            // ОТВЕЧАЕМ УСПЕХОМ
-            return ServiceChatroomServer::Srv_MakeSuccessLogin(
-                std::move(token), std::move(action->at(CONSTANTS::LF_ROOMNAME)), std::move(last_messages));
-        }
-        return ServiceChatroomServer::MakeAnswerError("FAILED TO ADD USER", __func__);
     }
     catch (const std::exception &ex)
     {
-        return ServiceChatroomServer::MakeAnswerError("FAILED TO ADD USER", __func__);
+        return ServiceChatroomServer::MakeAnswerError("FAILED TO ADD USER", __func__, CONSTANTS::ACT_LOGIN);
     }
 }
 
@@ -60,15 +50,14 @@ std::string MainServer::CreateRoom(std::string room)
     {
         Service::GuardLockConditional(sync_.mod_users_ , sync_.mtx_lock_mod_users_ , sync_.condition_).Lock();
         if(rooms_.contains(room)){
-           return ServiceChatroomServer::MakeAnswerError("FAILED TO CREATE ROOM, ROOM WITH THIS NAME IS EXISTS", __func__);
+           return ServiceChatroomServer::MakeAnswerError("FAILED TO CREATE ROOM, ROOM WITH THIS NAME IS EXISTS", __func__ , CONSTANTS::ACT_CREATE_ROOM );
         }
-        
-        rooms_[room] = std::make_shared<Chatroom>(this->ioc_);
+        rooms_.insert({room , std::make_shared<Chatroom>(ioc_, &*this)});
         return ServiceChatroomServer::Srv_MakeSuccessCreateRoom(room);
     }
     catch (const std::exception &ex)
     {
-        return ServiceChatroomServer::MakeAnswerError("FAILED TO CREATE ROOM", __func__);
+        return ServiceChatroomServer::MakeAnswerError("FAILED TO CREATE ROOM", __func__ , CONSTANTS::ACT_CREATE_ROOM );
     }
 }
 
@@ -81,19 +70,20 @@ std::string MainServer::CreateRoom(std::string room)
             Service::GuardLockConditional(sync_.mod_users_ , sync_.mtx_lock_mod_users_, sync_.condition_).Lock();
             if (!rooms_.contains(roomname))
             {    
-                return ServiceChatroomServer::MakeAnswerError("THERE IS NO ROOM: " + roomname, __func__);
+                return ServiceChatroomServer::MakeAnswerError("THERE IS NO ROOM: " + roomname, __func__ , CONSTANTS::ACT_GET_USERS);
             }
             std::string userlist = rooms_.at(roomname)->RoomMembers();
             return ServiceChatroomServer::Srv_MakeSuccessGetUsers(std::move(userlist));
         }
         catch (const std::exception &ex)
         {
-            return ServiceChatroomServer::MakeAnswerError(ex.what(), __func__);
+            return ServiceChatroomServer::MakeAnswerError(ex.what(), __func__ ,  CONSTANTS::ACT_GET_USERS);
         }
     }
 
     std::string MainServer::GetRoomsList()
     {
+        ZyncPrint("ROOMS", rooms_.size());
         try
         {
             std::stringstream strm;
@@ -105,13 +95,13 @@ std::string MainServer::CreateRoom(std::string room)
                    пока не выпоннит задачу, требующую блокировки
                 */
                 Service::GuardLockConditional 
-                (sync_.mod_users_ , sync_.mtx_lock_mod_users_, sync_.condition_).Lock();
+(sync_.mod_users_ , sync_.mtx_lock_mod_users_, sync_.condition_).Lock();
                 
                 for (auto &&room : rooms_)
                 {
                     strm << room.first << ' ';
                     ++cnt;
-                    if (cnt + 1 == rms)
+                    if (cnt >= rms)
                     {
                         break;
                     }
@@ -123,7 +113,7 @@ std::string MainServer::CreateRoom(std::string room)
         }
         catch (const std::exception &ex)
         {
-            return ServiceChatroomServer::MakeAnswerError(ex.what(), __func__);
+            return ServiceChatroomServer::MakeAnswerError(ex.what(), __func__ ,  CONSTANTS::ACT_ROOM_LIST);
         }
     }
 

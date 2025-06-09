@@ -72,32 +72,7 @@ namespace Service
 {
     bool IsAliveSocket(tcp::socket &sock)
     {
-        if (!sock.is_open())
-        {
-            return false;
-        }
-        boost::system::error_code ec;
-        char data;
-        size_t len = sock.receive(boost::asio::buffer(&data, 1), boost::asio::socket_base::message_peek, ec);
-
-        if (ec)
-        {
-
-            if (ec == boost::asio::error::would_block || boost::asio::error::try_again)
-            {
-                return true;
-            }
-            if (ec == boost::asio::error::eof)
-            {
-                return false;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        // Данные доступны для чтения — соединение живо
-        return len > 0;
+        return sock.is_open();   
     }
 
     bool IsAliveSocket(shared_socket sock)

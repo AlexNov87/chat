@@ -13,7 +13,7 @@ namespace Service
         virtual void Lock();
     protected:
         virtual void Unlock();
-        void CheckThatWasLocked();
+        virtual void CheckThatWasLocked();
 
         booltype &locker_;
         std::unique_lock<std::mutex> ul_;
@@ -27,6 +27,7 @@ namespace Service
         GuardLockConditional(booltype &lc, std::mutex &mtx, std::condition_variable &condition);
         ~GuardLockConditional() override;
         void UnlockImmediately() override;
+       // void CheckThatWasLocked() override;
         void Lock() override;
 
     protected:
@@ -42,6 +43,7 @@ namespace Service
         ~GuardLockAnotherAwait();
         void Lock() override;
         void UnlockImmediately() override;
+       // void CheckThatWasLocked() override;
 
     protected:
          void Unlock() override;
