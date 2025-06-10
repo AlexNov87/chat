@@ -138,13 +138,30 @@ void Do(shared_socket sock, std::string act)
   net::post(*strand__, lam);
 };
 
+
+void Read();
 void Do2(shared_socket sock, std::string act)
 {
   err ec;
-  auto req = Service::MakeRequest(http::verb::get, 11, UserInterface::US_SrvMakeObjLogin("RRAT", "jijjiw", "YANDEX"));
+  auto req = Service::MakeRequest(http::verb::get, 11, act);
   ZyncPrint("WRITE.............");
-  http::write(*sock, req, ec);
+    http::write(*sock, req, ec);
+  Read();
 };
+
+
+void Do3(shared_socket sock, std::string act)
+{
+  err ec;
+  auto req = Service::MakeRequest(http::verb::get, 11, act);
+  ZyncPrint("WRITE.............");
+    net::post(*strand__, [sock]{
+
+    });
+         //http::write(*sock, req, ec);
+  Read();
+};
+
 
 
 void Read()
@@ -173,19 +190,27 @@ void Read()
 void test3()
 {
 
+  net::post([])
   Do2(socket__, UserInterface::US_SrvMakeObjLogin("RRAT", "jijjiw", "YANDEX"));
+  
+  
   Do2(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDEX"));
-  Do2(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDEX"));
+  Do2(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
 };
 
 int main()
 {
   InitSocket(*socket__);
-  
- std::jthread([]{Read();});
+ // net::post(*strand__,[]{ Read();});
+  std::jthread([]{Read();});
  
   
-  net::post(ioc,[]{ test3();});
+  net::post(*strand__,[]{ 
+      test3();
+  });
+  
+  
+  
   Service::MtreadRunContext(ioc);  
 
   // запуск ioc

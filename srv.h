@@ -67,25 +67,24 @@ private:
     std::string HandleAction(shared_task action);
 };
 
-struct Chatuser
+struct Chatuser : public std::enable_shared_from_this<Chatuser>
 {
-    Chatuser(Chatroom* room,std::string name, shared_socket socket, net::io_context& io) :  room_(room) ,  name_(std::move(name)),
-                                                       socket_(socket) , ioc_(io) {
-                                                       strand_ = Service::MakeSharedStrand(ioc_);
-
-                                                       }
-    Chatroom* room_;
+    Chatuser(std::weak_ptr<Chatroom> room, std::string name, shared_socket socket, net::io_context &io) : room_(room), name_(std::move(name)),
+                                                                                                          socket_(socket), ioc_(io)
+    {
+        strand_ = Service::MakeSharedStrand(ioc_);
+    }
+    std::weak_ptr<Chatroom> room_;
     std::string name_;
     shared_socket socket_;
-     net::io_context& ioc_;
-     shared_strand strand_;      
-     beast::flat_buffer buffer_;
-     request request_;
+    net::io_context &ioc_;
+    shared_strand strand_;
+    beast::flat_buffer buffer_;
+    request request_;
 
     void Read()
     {
-        std::shared_ptr<response> resp = std::make_shared<response>();
-        auto handler = [this, resp](err ec, size_t bytes)
+        auto handler = [self = shared_from_this()](err ec, size_t bytes)
         {
             ZyncPrint("LAMPDA READ...............");
             if (ec)
@@ -93,41 +92,53 @@ struct Chatuser
                 ZyncPrint(ec.what());
                 return;
             }
-            auto i = Service::ExtractSharedObjectsfromRequestOrResponce(*resp);
+
+            ZyncPrint("Body", self->request_.body(), self->request_.body().empty());
+          
+            auto i = Service::ExtractSharedObjectsfromRequestOrResponce(self->request_);
+            
+            self->buffer_.consume(self->buffer_.size());
+            self->request_.clear();
+            
             Service::PrintUmap(*i);
-          //  net::post(*strand_ , [&]{ http::write(*socket_, *resp);});
-            Read();
-        
+            net::post(*self->strand_, [self]{ self->Read();});
+            
         };
         ZyncPrint("READINASYNC.............");
-        http::async_read(*socket_, buffer_, request_, handler);
-    }
-    
-    void Run(){
-        std::jthread([&]{Read();});
-      //  ioc_.run();
+        net::post(*strand_, [self = shared_from_this(), handler]
+                  { http::async_read(*self->socket_, self->buffer_, self->request_, handler);});
     }
 
-    void IncomeMessage(std::string message){
-         auto resp = Service::MakeResponce(11, true, http::status::ok, std::move(message)); 
-         net::post(*strand_, [&]{ http::write(*socket_, resp);});    
+    void Run()
+    {
+        net::post(*strand_, [self = shared_from_this()]
+                  { 
+        auto responce = Service::MakeResponce(11, true , http::status::ok,
+        ServiceChatroomServer::Srv_MakeSuccessLogin("TTTY", "ROOOOM", "-----------")); 
+        http::async_write(*self->socket_, responce, [self](err ec, size_t bytes){
+              net::post([self] { self->Read();});
+        }); 
+        });
     }
 
-    Chatuser(const Chatuser&) = delete;
-    Chatuser& operator=(const Chatuser&) = delete;
-    Chatuser(Chatuser&&) = delete;
-    Chatuser& operator=(Chatuser&&) = delete;
-
+    void IncomeMessage(std::string message)
+    {
+        auto resp = Service::MakeResponce(11, true, http::status::ok, std::move(message));
+        net::post(*strand_, [self = shared_from_this(), resp]
+                  { http::write(*self->socket_, resp);
+                            self->Read(); });
+    }
 };
 
-class Chatroom
+class Chatroom : public std::enable_shared_from_this<Chatroom>
 {
 
     friend class MainServer;
     friend class ChatRoomSession;
-    MainServer *mainserv_;
     net::io_context &ioc_;
-    std::unordered_map<std::string, std::unique_ptr<Chatuser>> users_;
+    MainServer *mainserv_;
+
+    std::unordered_map<std::string, std::shared_ptr<Chatuser>> users_;
 
     std::condition_variable cond_;
     booltype modyfiing_users = false;
@@ -136,11 +147,11 @@ class Chatroom
     MessageManager msg_man_;
 
 public:
-    Chatroom(net::io_context &ioc) : ioc_(ioc) {}
+    Chatroom(net::io_context &ioc, MainServer *serv) : ioc_(ioc), mainserv_(serv) {}
 
 private:
     bool HasToken(const std::string &token);
-    void AddUser(shared_socket socket, std::string name, std::string token);
+    bool AddUser(shared_socket socket, std::string name, std::string token);
     void SendMessages(const std::string &token, const std::string &message);
     void DeleteUser(std::string token);
     std::string RoomMembers();
@@ -165,7 +176,7 @@ class MainServer
     tcp::acceptor acceptor_;
     tcp::endpoint endpoint_;
     Service::TokenGen tokezier_;
-    std::unordered_map<std::string,std::shared_ptr<Chatroom>> rooms_;
+    std::unordered_map<std::string, std::shared_ptr<Chatroom>> rooms_;
     Syncro sync_;
     const std::string CHECKPTR = "CHECK_PTR......................";
 

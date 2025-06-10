@@ -37,6 +37,7 @@
 #include <optional>
 #include <deque>
 #include <future>
+#include <cassert>
 #include "const.h"
 #include "guardlock.h"
 namespace net = boost::asio;

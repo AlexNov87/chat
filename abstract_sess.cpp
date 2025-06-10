@@ -25,18 +25,14 @@ void AbstractSession::HandleSession(bool need_check)
                                   //КЛАДЕМ В ОЧЕРЕДЬ???
                                   self->mess_queue_.push_back(responce_body);
 
-                                  auto resobj = Service::DeserializeUmap<std::string, std::string>(responce_body);
-                                 // Service::PrintUmap(resobj);
-                                  
-                                  http::status stat = http::status::ok;
-                                  
+                                  auto resobj = Service::DeserializeUmap<std::string, std::string>(responce_body);       
                                   /*
                                   
                                   */
-                                  
+                                  http::status stat = http::status::ok;
                                   response rsp(Service::MakeResponce(11, true, stat, std::move(responce_body))); 
                                   //ПИШЕМ В СОКЕТ
-                                  http::async_write(*(self->socket_), rsp  , [self](err ec, size_t bytes) {});//async write
+                                  http::async_write(*(self->socket_), rsp, [self](err ec, size_t bytes) {});//async write
                                 }//if !ec outer
             }//async read until lam
             );//async read until

@@ -16,33 +16,28 @@ bool Chatroom::HasToken(const std::string &token)
     return has_token;
 }
 
-void Chatroom::AddUser(shared_socket socket, std::string name, 
-std::string token)
+bool Chatroom::AddUser(shared_socket socket, std::string name,
+                       std::string token)
 {
+    bool success = false;
     {
         /* Обязательно область видимости!!! Service::GuardLock
                пока не выпоннит задачу, требующую блокировки
             */
         // Дождется пока добавляются или удаляются юзеры, запретит удалять или добавлять.
         Service::GuardLockAnotherAwait(do_not_allow_modify_users, mut_users_, cond_, modyfiing_users).Lock();
-        users_.insert({token, std::make_unique<Chatuser>(this, std::move(name), socket , mainserv_->ioc_)});
+        auto self = weak_from_this();
+        auto it = users_.insert({token, std::make_shared<Chatuser>(self, std::move(name), socket, mainserv_->ioc_)});
+        success = it.second;
     }
-    // ЛОГИРУЕМ СИТЕМНОЕ СООБЩЕНИЕ
- //   msg_man_.ServiceMessage(users_.at(token).name_ + " IS CONNECTED");
-    //  ZyncPrint("ADDPOST.....................B");
-
-    // auto lam = [self = shared_from_this(), token, socket]
-    // {
-    //     auto rsp = Service::MakeResponce(11, true, http::status::ok, ServiceChatroomServer::Srv_MakeSuccessLogin(token, "RMNAME", "NONE"));
-    //     http::async_write(*socket, rsp, [self, token](err ec, size_t bytes){
-    //       //  self->AwaitSocket(token);
-    //     });
-        
-    // };
-   
-    //     for(int i = 0; i< 5; ++i){
-    //     net::post(*users_.at(token).strand_, lam);
-    // }
+    if (success)
+    {
+        users_.at(token)->Run();
+        // ЛОГИРУЕМ СИТЕМНОЕ СООБЩЕНИЕ
+        msg_man_.ServiceMessage(users_.at(token)->name_ + " IS CONNECTED");
+        return success;
+    }
+    return success;   
 }
 
 void Chatroom::SendMessages(const std::string &token, const std::string &message)
