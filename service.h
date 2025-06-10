@@ -37,6 +37,7 @@
 #include <optional>
 #include <deque>
 #include <future>
+#include <cassert>
 #include "const.h"
 #include "guardlock.h"
 namespace net = boost::asio;
@@ -227,6 +228,22 @@ namespace Service
 
 namespace ServiceChatroomServer
 {
+    //ПРОВЕРЯЕТ ЕСТЬ ЛИ ПОЛЕ И ПУСТОЕ ЛИ ОНО СО МНОГИМИ АРГУМЕНТАМИ
+    template <typename... Args>
+    std::optional<std::string> CHK_FieldExistsAndNotEmpty(const task &action, Args... args)
+    {
+        std::vector<const std::string *> vec;
+        (..., vec.push_back(&args));
+        for (auto sv : vec)
+        {
+            if (auto mis = CHK_FieldExistsAndNotEmpty(action, std::string(*sv)))
+            {
+                return *mis;
+            }
+        }
+        return std::nullopt;
+    }
+    
     std::optional<std::string> CHK_ServerLoadObject(const boost::json::value &obj);
     ///@brief Создать о
     std::string MakeAnswerError(std::string reason, std::string initiator,std::string action);
@@ -254,6 +271,8 @@ namespace ServiceChatroomServer
     // ОТВЕТ СЕРВЕРА НА УСПЕШНОЕ ПОЛУЧЕНИЕ СООБЩЕНИЯ ЮЗЕРА
     std::string Chr_MakeSuccessUserMessage(std::string username, std::string msg);
 
+    
+
 }
 
 namespace UserInterface
@@ -277,3 +296,4 @@ namespace UserInterface
     ///@brief Сериализованный объект для получения списка комнат
     std::string US_SrvMakeObjRoomList();
 }
+

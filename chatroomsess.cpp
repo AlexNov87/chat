@@ -2,10 +2,10 @@
 
 std::string ChatRoomSession::GetStringResponceToSocket(shared_task action)
 {
-    return HandleAction(action);
+    return ExecuteReadySession(action);
 };
 
-std::string ChatRoomSession::HandleAction(shared_task action)
+std::string ChatRoomSession::ExecuteReadySession(shared_task action)
 {
 
     Service::ACTION current_action =

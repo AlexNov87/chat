@@ -72,22 +72,6 @@ namespace ServiceChatroomServer
         return std::nullopt;
     }
     
-    //ПРОВЕРЯЕТ ЕСТЬ ЛИ ПОЛЕ И ПУСТОЕ ЛИ ОНО СО МНОГИМИ АРГУМЕНТАМИ
-    template <typename... Args>
-    std::optional<std::string> CHK_FieldExistsAndNotEmpty(const task &action, Args... args)
-    {
-        std::vector<const std::string *> vec;
-        (..., vec.push_back(&args));
-        for (auto sv : vec)
-        {
-            if (auto mis = CHK_FieldExistsAndNotEmpty(action, std::string(*sv)))
-            {
-                return *mis;
-            }
-        }
-        return std::nullopt;
-    }
-
     std::optional<std::string> CHK_FieldActionIncorrect(const task &action)
     {
 

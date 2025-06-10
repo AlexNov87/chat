@@ -8,15 +8,15 @@ std::string ServerSession::GetStringResponceToSocket(shared_task action)
     {
         return ServiceChatroomServer::MakeAnswerError(*reason, __func__ , "" );
     }
-    return ExectuteReadySession(action, socket_);
+    return ExecuteReadySession(action, socket_);
 }
 
 void ServerSession::ExecuteTask(shared_task action)
 {
-    ExectuteReadySession(action, socket_);
+    ExecuteReadySession(action, socket_);
 }
 
-std::string ServerSession::ExectuteReadySession(shared_task action, shared_socket socket)
+std::string ServerSession::ExecuteReadySession(shared_task action, shared_socket socket)
 {
     try
     {

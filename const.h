@@ -43,6 +43,7 @@ struct CONSTANTS
     static const std::string IP ; 
     static const std::string PORT; 
     static const std::string CHATROOMS;
+    static const std::string UNKNOWN;
      
 
     ///@brief Длина токена

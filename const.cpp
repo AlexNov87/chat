@@ -39,6 +39,7 @@ const std::string CONSTANTS::RF_DIRECTION_CHATROOM = "DIRECTION_CHATROOM";
 const std::string CONSTANTS::IP = "IP"; 
 const std::string CONSTANTS::PORT = "PORT"; 
 const std::string CONSTANTS::CHATROOMS = "DEFAULT_CHATROOMS"; 
+const std::string CONSTANTS::UNKNOWN = "UNKNOWN";
 
 
 const size_t CONSTANTS::N_TOKEN_LEN = 32;
