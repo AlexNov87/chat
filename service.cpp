@@ -65,14 +65,13 @@ namespace Service
     {
         return std::make_shared<net::streambuf>();
     };
-
 }
 
 namespace Service
 {
     bool IsAliveSocket(tcp::socket &sock)
     {
-        return sock.is_open();   
+        return sock.is_open();
     }
 
     bool IsAliveSocket(shared_socket sock)

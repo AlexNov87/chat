@@ -58,7 +58,7 @@ namespace ServiceChatroomServer
 namespace ServiceChatroomServer
 {
     //ПРОВЕРЯЕТ ЕСТЬ ЛИ ПОЛЕ И ПУСТОЕ ЛИ ОНО
-    std::optional<std::string> CHK_FieldExistsAndNotEmpty(const task &action, const std::string &fieldname)
+    std::optional<std::string> CHK_OneFieldExistsAndNotEmpty(const task &action, const std::string &fieldname)
     {
         if (!action.contains(fieldname))
         {
@@ -242,10 +242,10 @@ namespace ServiceChatroomServer
     // ПРОВЕРКА ЛОГИНА
     std::optional<std::string> CHK_Srv_ActionLoginIncorrect(const task &action)
     {
-
         // ПРОВЕРКА ПОЛЕЙ ТОКЕНА НЕ НУЖНА - СЕРВЕР ЕЩЕ НЕ ДАЛ ТОКЕН
        auto reason = CHK_FieldExistsAndNotEmpty
        (action, CONSTANTS::LF_NAME, CONSTANTS::LF_ROOMNAME, CONSTANTS::LF_PASSWORD);
+        
         if (reason)
         {
             return *reason;
@@ -303,11 +303,15 @@ namespace ServiceChatroomServer
     
     std::optional<std::string> CHK_Chr_CheckErrorsChatServer(const task &action)
     {
+       
+         
         auto reason = CHK_Srv_BaseToServerCheckIncorrect(action);
         if (reason)
         {
             return *reason;
         }
+
+          
         
         auto testcase = Service::Additional::action_scernario.at(action.at(CONSTANTS::LF_ACTION));
         switch (testcase)
@@ -327,11 +331,17 @@ namespace ServiceChatroomServer
         case Service::ACTION::LOGIN:
             reason = CHK_Srv_ActionLoginIncorrect(action);
             break;
-
-
         default:
             break;
         }
+        
+           
+        if (reason)
+        {
+            return *reason;
+        }
+        
+        
         return std::nullopt;
     };
 

@@ -1,6 +1,6 @@
 #include "srv.h"
 
-std::string MainServer::LoginUser(shared_task action, shared_socket socket)
+std::string MainServer::LoginUser(shared_task action, shared_stream stream)
 {
     try
     {
@@ -33,7 +33,7 @@ std::string MainServer::LoginUser(shared_task action, shared_socket socket)
         //Послелние сообщения комнтаты
         last_messages = room->msg_man_.LastMessages();
         // УДАЛОСЬ ЛИ ДОБАВТЬ
-         added = room->AddUser(socket, name, token);
+         added = room->AddUser(stream, name, token);
          return"";
          
          return ServiceChatroomServer::Srv_MakeSuccessLogin(token, roomname, "-----------"); 
@@ -54,7 +54,7 @@ std::string MainServer::CreateRoom(std::string room)
         if(rooms_.contains(room)){
            return ServiceChatroomServer::MakeAnswerError("FAILED TO CREATE ROOM, ROOM WITH THIS NAME IS EXISTS", __func__ , CONSTANTS::ACT_CREATE_ROOM );
         }
-        rooms_.insert({room , std::make_shared<Chatroom>(ioc_, &*this)});
+        rooms_.insert({room , std::make_shared<Chatroom>(&*this, room)});
         return ServiceChatroomServer::Srv_MakeSuccessCreateRoom(room);
     }
     catch (const std::exception &ex)
@@ -100,7 +100,7 @@ std::string MainServer::CreateRoom(std::string room)
                 
                 for (auto &&room : rooms_)
                 {
-                    strm << room.first << ' ';
+                    strm << '"' << room.first << '"';
                     ++cnt;
                     if (cnt >= rms)
                     {

@@ -28,6 +28,7 @@
 #include <sstream>
 #include <syncstream>
 #include <chrono>
+#include <cassert>
 
 #include <string>
 #include <unordered_set>
@@ -56,6 +57,8 @@ namespace beast = boost::beast;
 namespace http = beast::http;
 using request = http::request<http::string_body>;
 using response = http::response<http::string_body>;
+using stream = beast::tcp_stream;
+using shared_stream = std::shared_ptr<stream>;
 
 
 template <typename... Args>
@@ -211,6 +214,8 @@ namespace Service
     {
         return std::make_shared<tcp::socket>(executor);
     }
+
+
     std::shared_ptr<MutableBufferHolder> MakeSharedMutableBuffer();
     std::shared_ptr<net::streambuf> MakeSharedStreambuf();
 
@@ -228,15 +233,18 @@ namespace Service
 
 namespace ServiceChatroomServer
 {
+    std::optional<std::string> CHK_OneFieldExistsAndNotEmpty(const task &action, const std::string &fieldname);
+    
     //ПРОВЕРЯЕТ ЕСТЬ ЛИ ПОЛЕ И ПУСТОЕ ЛИ ОНО СО МНОГИМИ АРГУМЕНТАМИ
     template <typename... Args>
     std::optional<std::string> CHK_FieldExistsAndNotEmpty(const task &action, Args... args)
     {
-        std::vector<const std::string *> vec;
-        (..., vec.push_back(&args));
+       
+        std::vector<std::string> vec;
+        (..., vec.push_back(args));
         for (auto sv : vec)
         {
-            if (auto mis = CHK_FieldExistsAndNotEmpty(action, std::string(*sv)))
+            if (auto mis = CHK_OneFieldExistsAndNotEmpty(action, sv))
             {
                 return *mis;
             }

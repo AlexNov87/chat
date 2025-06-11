@@ -19,8 +19,8 @@ std::string ChatRoomSession::ExecuteReadySession(shared_task action)
         {
             return ServiceChatroomServer::MakeAnswerError("TOKEN NOT FOUND", __func__, CONSTANTS::ACT_SEND_MESSAGE);
         }
-
-        chatroom_->SendMessages(action->at(CONSTANTS::LF_TOKEN), action->at(CONSTANTS::LF_MESSAGE));
+        //Добавил имя чтобы попозже поставиль lock-guard
+        chatroom_->SendMessages(action->at(CONSTANTS::LF_TOKEN),action->at(CONSTANTS::LF_NAME), action->at(CONSTANTS::LF_MESSAGE));
         return ServiceChatroomServer::Chr_MakeSuccessSendMessage();
     }
     break;
