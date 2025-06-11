@@ -198,6 +198,13 @@ void test3()
  });
 
  net::post(*strandwr__ ,[]{
+     Do3(socket__, UserInterface::US_SrvMakeObjCreateRoom("YAARRRR"));
+ });
+
+  net::post(*strandwr__ ,[]{
+     Do3(socket__, UserInterface::US_SrvMakeObjCreateRoom("FFFFFFFFFFFFF"));
+ });
+ net::post(*strandwr__ ,[]{
      Do3(socket__, UserInterface::US_SrvMakeObjLogin("OOORRAT", "jijjiw", "YANDEX"));
  });
 
@@ -205,11 +212,11 @@ void test3()
      Do3(socket__, UserInterface::US_SrvMakeObjLogin("UUUUUUUURRAT", "jijjiw", "YANDEX"));
  });
  net::post(*strandwr__ ,[]{
-       Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDEX"));
+       Do3(socket__, UserInterface::US_SrvMakeObjRoomList());
  });
 
  net::post(*strandwr__ ,[]{
-      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
+      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDEX"));
  });
 
  net::post(*strandwr__ ,[]{

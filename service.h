@@ -202,20 +202,15 @@ namespace Service
     void ShutDownSocket(tcp::socket &sock);
     void ShutDownSocket(shared_socket sock);
 
-    ///@brief Извлекает список полученыых обьектов из буфера
-    task ExtractObjectsfromBuffer(net::streambuf &buffer, size_t extract);
-    ///@brief Извлекает список полученыых обьектов из буфера в виде shared_ptr
-    shared_task ExtractSharedObjectsfromBuffer(net::streambuf &buffer, size_t extract);
-    std::string ExtractStrFromStreambuf(net::streambuf &buffer, size_t extract);
-    shared_strand MakeSharedStrand(net::io_context &ioc);
+   
     
+    
+    shared_strand MakeSharedStrand(net::io_context &ioc);
     template <typename T>
     shared_socket MakeSharedSocket(T &executor)
     {
         return std::make_shared<tcp::socket>(executor);
     }
-
-
     std::shared_ptr<MutableBufferHolder> MakeSharedMutableBuffer();
     std::shared_ptr<net::streambuf> MakeSharedStreambuf();
 
