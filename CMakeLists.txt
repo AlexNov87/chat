@@ -27,7 +27,8 @@ ___testcli.h
 
 set(cliserv 
 srv.h 
-chatroom.cpp 
+chatroom.cpp
+chatuser.cpp
 
 abstract_sess.cpp
 chatroomsess.cpp 
