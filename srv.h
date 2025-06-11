@@ -18,11 +18,15 @@ protected:
     shared_stream stream_ = nullptr;
     beast::flat_buffer readbuf_;
     request request_;
-    std::atomic_bool condition = true;
-    std::deque<std::string> mess_queue_;
-    std::atomic_bool keep_sess_ = true;
     static std::atomic_int exempslars;
     virtual std::string GetStringResponceToSocket(shared_task action) = 0;
+    void WriteToSocket(std::string respbody , http::status status = http::status::ok);
+    void StartRead();
+    void OnRead(err ec, size_t bytes);
+    void OnWrite(bool keep_alive, err ec, size_t bytes);
+    void StartAfterReadHandle();
+    void StartExtractAction();
+    void StartExecuteAction(shared_task action);
 
     virtual ~AbstractSession()
     {
@@ -31,10 +35,6 @@ protected:
 
 public:
     void HandleSession();
-    void FreeSession()
-    {
-        keep_sess_ = false;
-    }
 };
 
 class ServerSession : public AbstractSession

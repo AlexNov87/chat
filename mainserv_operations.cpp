@@ -109,8 +109,8 @@ std::string MainServer::CreateRoom(std::string room)
                     strm << " , ";
                 }
             }
-            strm << " ]";
-            return ServiceChatroomServer::Srv_MakeSuccessRoomList(std::move(strm.str()));
+            strm << " ]";  
+           return ServiceChatroomServer::Srv_MakeSuccessRoomList(std::move(strm.str()));
         }
         catch (const std::exception &ex)
         {

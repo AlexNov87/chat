@@ -181,7 +181,6 @@ void Read()
       ZyncPrint(ec.what(), "BODY",  req->body());
       
     }
-
     // ZyncPrint("->" + Service::ExtractStrFromStreambuf(*sb, bytes) + "<-");
     auto i = Service::ExtractSharedObjectsfromRequestOrResponce(*req);
     Service::PrintUmap(*i);
@@ -233,9 +232,36 @@ void test3()
 void test4()
 {
    Do2(socket__, UserInterface::US_SrvMakeObjLogin("RRAT", "jijjiw", "YANDEX"));
-    Do2(socket__, UserInterface::US_SrvMakeObjLogin("OOORRAT", "jijjiw", "YANDEX"));
-     Do2(socket__, UserInterface::US_SrvMakeObjLogin("UUUUUUUURRAT", "jijjiw", "YANDEX"));
+   Do2(socket__, UserInterface::US_SrvMakeObjLogin("OOORRAT", "jijjiw", "YANDEX"));
+   Do2(socket__, UserInterface::US_SrvMakeObjLogin("UUUUUUUURRAT", "jijjiw", "YANDEX"));
 }
+
+
+void test5(){
+  
+  
+  net::post(*strandwr__ ,[]{
+       Do3(socket__, UserInterface::US_SrvMakeObjRoomList());
+ });
+
+ net::post(*strandwr__ ,[]{
+      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDEX"));
+ });
+
+  net::post(*strandwr__ ,[]{
+      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
+ });
+
+ net::post(*strandwr__ ,[]{
+      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
+ });
+
+  net::post(*strandwr__ ,[]{
+      Do3(socket__, UserInterface::US_SrvMakeObjCreateUser("UUUUUUUUUUUU", "jshi2jojkojkp"));
+ });
+
+}
+
 
 int main()
 {
@@ -247,8 +273,8 @@ int main()
       Read();
   });
   
-  net::post(*strand__,[]{ 
-      test3();
+  net::post(*strandwr__,[]{ 
+      test5();
   });
   
   
