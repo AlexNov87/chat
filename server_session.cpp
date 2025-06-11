@@ -3,9 +3,6 @@
 std::atomic_int ServerSession::exempslars_s = 0;
 std::string ServerSession::GetStringResponceToSocket(shared_task action)
 {
-      
-      
-   
     auto reason = ServiceChatroomServer::CHK_Chr_CheckErrorsChatServer(*action);
     if (reason)
     {

@@ -68,7 +68,7 @@ std::string Chatroom::RoomMembers()
         {
             oss << '"' << chatuser->name_ << '"';
             ++nowpos;
-            if (nowpos == users_.size() - 1)
+            if (nowpos >= users_.size() - 1)
             {
                 break;
             }

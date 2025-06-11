@@ -36,7 +36,15 @@
             {
                 return ServiceChatroomServer::MakeAnswerError(*reason, __func__, act_to_send);
             }
-            // socket использоваться не будет, передан только в качестве реализации интерфейса
+            if(action->at(CONSTANTS::LF_ACTION) == CONSTANTS::ACT_CREATE_USER){
+                return ServiceChatroomServer::MakeAnswerError("YOU CAN'T CREATE USERS WLILE YOU CONNECTED" , __func__, act_to_send);
+            }
+
+            if(action->at(CONSTANTS::LF_ACTION) == CONSTANTS::ACT_LOGIN){
+                return ServiceChatroomServer::MakeAnswerError("YOU CAN'T LOGIN WLILE YOU CONNECTED" , __func__, act_to_send);
+            }
+            
+           // socket использоваться не будет, передан только в качестве реализации интерфейса
            ServerSession session(room_.lock().get()->mainserv_, stream_);
            return session.ExecuteReadySession(action, stream_);
         }

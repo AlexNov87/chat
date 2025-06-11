@@ -125,21 +125,16 @@ struct Chatuser : public std::enable_shared_from_this<Chatuser>
         if (ec == http::error::end_of_stream)
             return do_close();
 
-        if (ec){}
+        if (ec){
+          return do_close();
+        }
 
-       auto i = Service::ExtractSharedObjectsfromRequestOrResponce(request_);
+       auto action = Service::ExtractSharedObjectsfromRequestOrResponce(request_);
        request_.clear();
-       Service::PrintUmap(*i);
-
-    
-        auto res = Service::MakeResponce(11, true, http::status::ok, 
-        ServiceChatroomServer::MakeAnswerError( std::to_string(++count_), "TEST" , "TEST"));
-        // return fail(ec, "read");
-
-        // Send the response
-      
-
-        send_response(res);
+       Service::PrintUmap(*action);
+       auto resp_body = ExecuteReadySesion(action);
+       auto res = Service::MakeResponce(11, true, http::status::ok, std::move(resp_body));
+       send_response(std::move(res));
     };
 
     void
@@ -150,7 +145,7 @@ struct Chatuser : public std::enable_shared_from_this<Chatuser>
         // Write the response
         http::async_write(
             *stream_, std::move(msg), 
-            beast::bind_front_handler(&Chatuser::on_write, shared_from_this(), keep_alive));
+             beast::bind_front_handler(&Chatuser::on_write, shared_from_this(), keep_alive));
     }
 
     void
@@ -201,7 +196,6 @@ class Chatroom : public std::enable_shared_from_this<Chatroom>
     friend class MainServer;
     friend class ChatRoomSession;
     friend struct Chatuser;
-    
     MainServer *mainserv_;
     std::string name_;
     
