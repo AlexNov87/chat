@@ -7,24 +7,36 @@ class MainServer;
 class Chatroom;
 struct Chatuser;
 
-class AbstractSession : public std::enable_shared_from_this<AbstractSession>
-{
+
+class PrototypeSession {
+
 protected:
-    AbstractSession(shared_stream stream)
-        : stream_(stream)
-    {
-        ZyncPrint("ABSTRACTSESS: " + std::to_string(++exempslars) + " IS CONSTRUCTING");
-    }
     shared_stream stream_ = nullptr;
     beast::flat_buffer readbuf_;
     request request_;
+    PrototypeSession(shared_stream stream)
+        : stream_(stream){};
+
+   virtual void StartAfterReadHandle() {};
+    
+
+};
+
+class AbstractSession : public PrototypeSession, public std::enable_shared_from_this<AbstractSession>
+{
+protected:
+    AbstractSession(shared_stream stream) : PrototypeSession(stream)
+    {
+        ZyncPrint("ABSTRACTSESS: " + std::to_string(++exempslars) + " IS CONSTRUCTING");
+    }
+    
     static std::atomic_int exempslars;
     virtual std::string GetStringResponceToSocket(shared_task action) = 0;
-    void WriteToSocket(std::string respbody , http::status status = http::status::ok);
-    void StartRead();
+    void Write(std::string respbody , http::status status = http::status::ok);
+    void Read();
     void OnRead(err ec, size_t bytes);
     void OnWrite(bool keep_alive, err ec, size_t bytes);
-    void StartAfterReadHandle();
+    void StartAfterReadHandle() override;
     void StartExtractAction();
     void StartExecuteAction(shared_task action);
 
@@ -34,7 +46,7 @@ protected:
     };
 
 public:
-    void HandleSession();
+    void Run();
 };
 
 class ServerSession : public AbstractSession

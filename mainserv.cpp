@@ -66,7 +66,7 @@ void MainServer::Listen()
             }                                           
              std::shared_ptr<ServerSession> servsess = std::make_shared<ServerSession>
              (this, std::make_shared<beast::tcp_stream>(std::move(socket))); 
-             servsess->HandleSession();
+             servsess->Run();
              
              
              Listen();});

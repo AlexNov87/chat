@@ -25,14 +25,14 @@ void AbstractSession::StartExecuteAction(shared_task action)
             return;
         }
 
-        WriteToSocket(std::move(responce_body));
+        Write(std::move(responce_body));
     } // try
     catch (const std::exception &ex)
     {
         // ловим всевозможные исключения
         std::string responce_body = ServiceChatroomServer::MakeAnswerError(ex.what(), "StartExecuteAction()Exc2", CONSTANTS::UNKNOWN);
         ZyncPrint("StartExecuteAction()Exc2");
-        WriteToSocket(std::move(responce_body));
+        Write(std::move(responce_body));
     }
 };
 
@@ -44,7 +44,7 @@ void AbstractSession::StartAfterReadHandle()
         shared_task action = Service::ExtractSharedObjectsfromRequestOrResponce(request_);
         if (!action)
         {
-            WriteToSocket(ServiceChatroomServer::MakeAnswerError("Action is nullptr", "StartAfterReadHandle1()", CONSTANTS::UNKNOWN));
+            Write(ServiceChatroomServer::MakeAnswerError("Action is nullptr", "StartAfterReadHandle1()", CONSTANTS::UNKNOWN));
             return;
         }
         StartExecuteAction(action);
@@ -54,11 +54,11 @@ void AbstractSession::StartAfterReadHandle()
     {
         std::string responce_body = ServiceChatroomServer::MakeAnswerError(ex.what(), "StartAfterReadHandle2()", CONSTANTS::UNKNOWN);
         ZyncPrint("StartAfterReadHandle2()");
-        WriteToSocket(std::move(responce_body));
+        Write(std::move(responce_body));
     }
 };
 
-void AbstractSession::StartRead()
+void AbstractSession::Read()
 {
     request_ = {};
     //  ПРОВЕРЯЕМ ЖИВ ЛИ СОКЕТ
@@ -89,15 +89,15 @@ void AbstractSession::OnRead(err ec, size_t bytes)
     {}
 };
 
-void AbstractSession::HandleSession()
+void AbstractSession::Run()
 {
     net::dispatch(stream_->get_executor(),
                   beast::bind_front_handler(
-                      &AbstractSession::StartRead,
+                      &AbstractSession::Read,
                       shared_from_this()));
 };
 
-void AbstractSession::WriteToSocket(std::string responce_body, http::status status)
+void AbstractSession::Write(std::string responce_body, http::status status)
 {
 
     try
@@ -132,5 +132,5 @@ void AbstractSession::OnWrite(bool keep_alive, beast::error_code ec, std::size_t
         // Read another request
          ZyncPrint("WriteComplete");
          request_ = {};
-        StartRead();
+        Read();
     }
