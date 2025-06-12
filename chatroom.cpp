@@ -1,33 +1,20 @@
 #include "srv.h"
 
+
 bool Chatroom::HasToken(const std::string &token)
 {
-    // блокируем возможность подключение и удаления юзеров
-    std::unique_lock<std::mutex> ul(mut_users_);
-    do_not_allow_modify_users = true;
-    cond_.wait(ul, [&]()
-               { return modyfiing_users == false; });
-
-    bool has_token = users_.contains(token);
-
-    do_not_allow_modify_users = false;
-    // оповещаем потоки
-    cond_.notify_all();
-    return has_token;
+    std::lock_guard<std::mutex> lg(mtx_);
+     return users_.contains(token);
 }
 
-bool Chatroom::AddUser(shared_socket socket, std::string name,
+bool Chatroom::AddUser(shared_stream stream, std::string name,
                        std::string token)
 {
     bool success = false;
     {
-        /* Обязательно область видимости!!! Service::GuardLock
-               пока не выпоннит задачу, требующую блокировки
-            */
-        // Дождется пока добавляются или удаляются юзеры, запретит удалять или добавлять.
-        Service::GuardLockAnotherAwait(do_not_allow_modify_users, mut_users_, cond_, modyfiing_users).Lock();
+        std::lock_guard<std::mutex> lg(mtx_);
         auto self = weak_from_this();
-        auto it = users_.insert({token, std::make_shared<Chatuser>(self, std::move(name), socket, mainserv_->ioc_)});
+        auto it = users_.insert({token, std::make_shared<Chatuser>(self, std::move(name), stream, mainserv_->ioc_)});
         success = it.second;
     }
     if (success)
@@ -40,39 +27,32 @@ bool Chatroom::AddUser(shared_socket socket, std::string name,
     return success;   
 }
 
-void Chatroom::SendMessages(const std::string &token, const std::string &message)
+void Chatroom::SendMessages(const std::string &token, const std::string &name, const std::string &message)
 {
-
-    // Дождется пока добавляются или удаляются юзеры, запретит удалять или добавлять.
-    Service::GuardLockAnotherAwait(do_not_allow_modify_users, mut_users_, cond_, modyfiing_users).Lock();
-    // Нет токена - выйдет
-    if (!HasToken(token))
-    {
-        return;
-    }
+    
+      //Создаем тело ответа
+      auto str = ServiceChatroomServer::Chr_MakeSuccessUserMessage(name , message);
+      //Создаем сам ответ
+      auto responce = Service::MakeResponce(11, true, http::status::ok, std::move(str)); 
+   
+std::lock_guard<std::mutex> lg(mtx_);     
     std::cout << users_.at(token)->name_ << " : " << message << '\n';
-
     // Рассылка
     for (auto &&[token, chatuser] : users_)
     {
         // Если сокет недоступен
-        if (!Service::IsAliveSocket(chatuser->socket_))
+        if (!Service::IsAliveSocket(chatuser->stream_->socket()))
         {
             continue;
         }
-        // // Постим в последовательный исполнитель юзера асинхронную запись в его сокет
-        // net::post(*chatuser.strand_, [&, socket = users_.at(token).socket_, token, buf = net::buffer(message)]()
-        //           { net::async_write(*socket, std::move(buf), [&, token, socket](err ec, size_t bytes)
-        //                              {
-        //                      //Переводим сокет юзера в режим ожидания
-        //                     }); });
+        //Постим каждому юзеру задачу
+        chatuser->IncomeMessage(responce);
     };
 }
 
 void Chatroom::DeleteUser(std::string token)
 {
-    // Дождется пока постятся рассылки сообщений и запретит временно рассылку
-    Service::GuardLockAnotherAwait(modyfiing_users, mut_users_, cond_, do_not_allow_modify_users).Lock();
+    std::lock_guard<std::mutex> lg(mtx_); 
     users_.erase(token);
 }
 
@@ -81,37 +61,21 @@ std::string Chatroom::RoomMembers()
     std::ostringstream oss;
     oss << "[ ";
     size_t nowpos = 0;
+    
+    std::unique_lock<std::mutex> ul(mtx_);
     {
-        /* Обязательно область видимости!!! Service::GuardLock
-              пока не выпоннит задачу, требующую блокировки
-           */
-        // Ждет пока добавляются или удаляются юзеры , потом запрещает добалять или удалять
-        Service::GuardLockConditional(do_not_allow_modify_users, mut_users_, cond_).Lock();
         for (auto &&[token, chatuser] : users_)
         {
             oss << '"' << chatuser->name_ << '"';
             ++nowpos;
-            if (nowpos == users_.size() - 1)
+            if (nowpos >= users_.size() - 1)
             {
                 break;
             }
             oss << " , ";
         }
     }
+    ul.unlock();
     oss << " ]";
     return oss.str();
 }
-
-/*
- // Блокируем возможность рассылки по сокетам на время модификации списка
-    std::unique_lock<std::mutex> ul(mut_users_);
-    modyfiing_users = true;
-    cond_.wait(ul, [&]()
-               { return do_not_allow_modify_users == false; });
-    foo();
-    // закончили модификацию
-    modyfiing_users = false;
-    // оповещаем потоки
-    cond_.notify_all();
-
-*/

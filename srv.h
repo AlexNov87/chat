@@ -5,36 +5,48 @@
 
 class MainServer;
 class Chatroom;
+struct Chatuser;
 
-class AbstractSession : public std::enable_shared_from_this<AbstractSession>
+class PrototypeSession : public std::enable_shared_from_this<PrototypeSession>
 {
+
 protected:
-    AbstractSession(shared_strand strand, shared_socket &socket)
-        : strand_(strand), socket_(socket)
-    {
-        ZyncPrint("ABSTRACTSESS: " + std::to_string(++exempslars) + " IS CONSTRUCTING");
-    }
-    shared_socket socket_;
+    shared_stream stream_ = nullptr;
     beast::flat_buffer readbuf_;
     request request_;
-    shared_strand strand_;
-    std::atomic_bool condition = true;
-    std::deque<std::string> mess_queue_;
-    std::atomic_bool keep_sess_ = true;
     static std::atomic_int exempslars;
-    virtual std::string GetStringResponceToSocket(shared_task action) = 0;
+    PrototypeSession(shared_stream stream)
+        : stream_(stream)
+    {
+        ZyncPrint("PROTOSESS: " + std::to_string(++exempslars) + " IS CONSTRUCTING");
+    };
 
-    virtual ~AbstractSession()
+    virtual void StartAfterReadHandle() {};
+
+    void Read();
+    void OnRead(err ec, size_t bytes);
+    void OnWrite(bool keep_alive, err ec, size_t bytes);
+    void Write(std::string respbody, http::status status = http::status::ok);
+
+public:
+    void Run();
+     virtual ~PrototypeSession()
     {
         ZyncPrint("SESSION CLOSED.....");
     };
+};
 
-public:
-    void HandleSession(bool need_check = true);
-    void FreeSession()
-    {
-        keep_sess_ = false;
-    }
+class AbstractSession : public PrototypeSession
+{
+protected:
+    AbstractSession(shared_stream stream) : PrototypeSession(stream) {}
+
+    virtual std::string GetStringResponceToSocket(shared_task action) = 0;
+    void StartAfterReadHandle() override;
+    void StartExtractAction();
+    void StartExecuteAction(shared_task action);
+
+   
 };
 
 class ServerSession : public AbstractSession
@@ -42,13 +54,14 @@ class ServerSession : public AbstractSession
     MainServer *server_;
     static std::atomic_int exempslars_s;
     friend class Chatroom;
+    friend class Chatuser;
     void ExecuteTask(shared_task action);
-    std::string ExectuteReadySession(shared_task action, shared_socket socket);
+    std::string ExecuteReadySession(shared_task action, shared_stream stream);
     std::string GetStringResponceToSocket(shared_task action) override;
 
 public:
-    ServerSession(MainServer *server, shared_socket socket, shared_strand strand)
-        : AbstractSession(strand, socket), server_(server)
+    ServerSession(MainServer *server, shared_stream stream)
+        : AbstractSession(stream), server_(server)
     {
         ZyncPrint("SERVERSESS: " + std::to_string(++exempslars_s) + " IS CONSTRUCTING");
     };
@@ -57,77 +70,136 @@ public:
 class ChatRoomSession : public AbstractSession
 {
     Chatroom *chatroom_ = nullptr;
+    friend class Chatuser;
 
 public:
-    ChatRoomSession(Chatroom *chat, shared_socket socket, shared_strand strand)
-        : AbstractSession(strand, socket), chatroom_(chat) {};
+    ChatRoomSession(Chatroom *chat, shared_stream stream)
+        : AbstractSession(stream), chatroom_(chat) {};
     std::string GetStringResponceToSocket(shared_task action) override;
 
 private:
-    std::string HandleAction(shared_task action);
+    std::string ExecuteReadySession(shared_task action);
 };
 
 struct Chatuser : public std::enable_shared_from_this<Chatuser>
 {
-    Chatuser(std::weak_ptr<Chatroom> room, std::string name, shared_socket socket, net::io_context &io) : room_(room), name_(std::move(name)),
-                                                                                                          socket_(socket), ioc_(io)
+    Chatuser(std::weak_ptr<Chatroom> room, std::string name,
+             shared_stream stream, net::io_context &io)
+        : room_(room), name_(std::move(name)),
+          stream_(stream), ioc_(io)
     {
         strand_ = Service::MakeSharedStrand(ioc_);
     }
     std::weak_ptr<Chatroom> room_;
     std::string name_;
-    shared_socket socket_;
+    shared_stream stream_;
     net::io_context &ioc_;
     shared_strand strand_;
     beast::flat_buffer buffer_;
     request request_;
+    std::atomic_int count_ = 0;
 
-    void Read()
+    void
+    Run()
     {
-        auto handler = [self = shared_from_this()](err ec, size_t bytes)
+        // We need to be executing within a strand to perform async operations
+        // on the I/O objects in this session. Although not strictly necessary
+        // for single-threaded contexts, this example code is written to be
+        // thread-safe by default.
+        net::dispatch(stream_->get_executor(),
+                      beast::bind_front_handler(
+                          &Chatuser::do_read,
+                          shared_from_this()));
+    }
+
+    void
+    do_read()
+    {
+        // Make the request empty before reading,
+        // otherwise the operation behavior is undefined.
+        request_ = {};
+
+        // Set the timeout.
+        stream_->expires_after(std::chrono::seconds(30));
+
+        // Read a request
+        http::async_read(*stream_, buffer_, request_,
+                         beast::bind_front_handler(
+                             &Chatuser::on_read,
+                             shared_from_this()));
+    }
+
+    void
+    on_read(beast::error_code ec, std::size_t bytes_transferred)
+    {
+        boost::ignore_unused(bytes_transferred);
+        // This means they closed the connection
+        if (ec == http::error::end_of_stream)
+            return do_close();
+
+        if (ec)
         {
-            ZyncPrint("LAMPDA READ...............");
-            if (ec)
+            return do_close();
+        }
+
+        auto action = Service::ExtractSharedObjectsfromRequestOrResponce(request_);
+        request_.clear();
+        Service::PrintUmap(*action);
+        auto resp_body = ExecuteReadySesion(action);
+        auto res = Service::MakeResponce(11, true, http::status::ok, std::move(resp_body));
+        send_response(std::move(res));
+    };
+
+    void
+    send_response(response msg)
+    {
+        bool keep_alive = msg.keep_alive();
+
+        // Write the response
+        http::async_write(
+            *stream_, std::move(msg),
+            beast::bind_front_handler(&Chatuser::on_write, shared_from_this(), keep_alive));
+    }
+
+    void
+    on_write(
+        bool keep_alive,
+        beast::error_code ec,
+        std::size_t bytes_transferred)
+    {
+        boost::ignore_unused(bytes_transferred);
+
+        if (ec)
+            //   return fail(ec, "write");
+
+            if (!keep_alive)
             {
-                ZyncPrint(ec.what());
-                return;
+                // This means we should close the connection, usually because
+                // the response indicated the "Connection: close" semantic.
+                return do_close();
             }
 
-            ZyncPrint("Body", self->request_.body(), self->request_.body().empty());
-          
-            auto i = Service::ExtractSharedObjectsfromRequestOrResponce(self->request_);
-            
-            self->buffer_.consume(self->buffer_.size());
-            self->request_.clear();
-            
-            Service::PrintUmap(*i);
-            net::post(*self->strand_, [self]{ self->Read();});
-            
-        };
-        ZyncPrint("READINASYNC.............");
-        net::post(*strand_, [self = shared_from_this(), handler]
-                  { http::async_read(*self->socket_, self->buffer_, self->request_, handler);});
+        // Read another request
+        do_read();
     }
 
-    void Run()
+    void
+    do_close()
     {
-        net::post(*strand_, [self = shared_from_this()]
-                  { 
-        auto responce = Service::MakeResponce(11, true , http::status::ok,
-        ServiceChatroomServer::Srv_MakeSuccessLogin("TTTY", "ROOOOM", "-----------")); 
-        http::async_write(*self->socket_, responce, [self](err ec, size_t bytes){
-              net::post([self] { self->Read();});
-        }); 
-        });
+        // Send a TCP shutdown
+        beast::error_code ec;
+        stream_->socket().shutdown(tcp::socket::shutdown_send, ec);
+
+        // At this point the connection is closed gracefully
     }
 
-    void IncomeMessage(std::string message)
-    {
-        auto resp = Service::MakeResponce(11, true, http::status::ok, std::move(message));
-        net::post(*strand_, [self = shared_from_this(), resp]
-                  { http::write(*self->socket_, resp);
-                            self->Read(); });
-    }
+    /*
+    void Read();
+    void Run();
+      */
+    void IncomeMessage(response resp);
+
+    std::string ExecuteReadySesion(shared_task action);
 };
 
 class Chatroom : public std::enable_shared_from_this<Chatroom>
@@ -135,24 +207,21 @@ class Chatroom : public std::enable_shared_from_this<Chatroom>
 
     friend class MainServer;
     friend class ChatRoomSession;
-    net::io_context &ioc_;
+    friend struct Chatuser;
     MainServer *mainserv_;
+    std::string name_;
 
     std::unordered_map<std::string, std::shared_ptr<Chatuser>> users_;
-
-    std::condition_variable cond_;
-    booltype modyfiing_users = false;
-    booltype do_not_allow_modify_users = false;
-    std::mutex mut_users_;
+    std::mutex mtx_;
     MessageManager msg_man_;
 
 public:
-    Chatroom(net::io_context &ioc, MainServer *serv) : ioc_(ioc), mainserv_(serv) {}
+    Chatroom(MainServer *serv, const std::string &name) : mainserv_(serv), name_(name) {}
 
 private:
     bool HasToken(const std::string &token);
-    bool AddUser(shared_socket socket, std::string name, std::string token);
-    void SendMessages(const std::string &token, const std::string &message);
+    bool AddUser(shared_stream stream, std::string name, std::string token);
+    void SendMessages(const std::string &token, const std::string &name, const std::string &message);
     void DeleteUser(std::string token);
     std::string RoomMembers();
 };
@@ -226,5 +295,5 @@ private:
     std::string GetRoomUsersList(const std::string &roomname);
     std::string GetRoomsList();
     std::string CreateRoom(std::string room);
-    std::string LoginUser(shared_task action, shared_socket socket);
+    std::string LoginUser(shared_task action, shared_stream stream);
 };

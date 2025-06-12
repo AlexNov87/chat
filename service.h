@@ -28,6 +28,7 @@
 #include <sstream>
 #include <syncstream>
 #include <chrono>
+#include <cassert>
 
 #include <string>
 #include <unordered_set>
@@ -56,6 +57,8 @@ namespace beast = boost::beast;
 namespace http = beast::http;
 using request = http::request<http::string_body>;
 using response = http::response<http::string_body>;
+using stream = beast::tcp_stream;
+using shared_stream = std::shared_ptr<stream>;
 
 
 template <typename... Args>
@@ -199,13 +202,10 @@ namespace Service
     void ShutDownSocket(tcp::socket &sock);
     void ShutDownSocket(shared_socket sock);
 
-    ///@brief Извлекает список полученыых обьектов из буфера
-    task ExtractObjectsfromBuffer(net::streambuf &buffer, size_t extract);
-    ///@brief Извлекает список полученыых обьектов из буфера в виде shared_ptr
-    shared_task ExtractSharedObjectsfromBuffer(net::streambuf &buffer, size_t extract);
-    std::string ExtractStrFromStreambuf(net::streambuf &buffer, size_t extract);
-    shared_strand MakeSharedStrand(net::io_context &ioc);
+   
     
+    
+    shared_strand MakeSharedStrand(net::io_context &ioc);
     template <typename T>
     shared_socket MakeSharedSocket(T &executor)
     {
@@ -228,6 +228,25 @@ namespace Service
 
 namespace ServiceChatroomServer
 {
+    std::optional<std::string> CHK_OneFieldExistsAndNotEmpty(const task &action, const std::string &fieldname);
+    
+    //ПРОВЕРЯЕТ ЕСТЬ ЛИ ПОЛЕ И ПУСТОЕ ЛИ ОНО СО МНОГИМИ АРГУМЕНТАМИ
+    template <typename... Args>
+    std::optional<std::string> CHK_FieldExistsAndNotEmpty(const task &action, Args... args)
+    {
+       
+        std::vector<std::string> vec;
+        (..., vec.push_back(args));
+        for (auto sv : vec)
+        {
+            if (auto mis = CHK_OneFieldExistsAndNotEmpty(action, sv))
+            {
+                return *mis;
+            }
+        }
+        return std::nullopt;
+    }
+    
     std::optional<std::string> CHK_ServerLoadObject(const boost::json::value &obj);
     ///@brief Создать о
     std::string MakeAnswerError(std::string reason, std::string initiator,std::string action);
@@ -255,6 +274,8 @@ namespace ServiceChatroomServer
     // ОТВЕТ СЕРВЕРА НА УСПЕШНОЕ ПОЛУЧЕНИЕ СООБЩЕНИЯ ЮЗЕРА
     std::string Chr_MakeSuccessUserMessage(std::string username, std::string msg);
 
+    
+
 }
 
 namespace UserInterface
@@ -278,3 +299,4 @@ namespace UserInterface
     ///@brief Сериализованный объект для получения списка комнат
     std::string US_SrvMakeObjRoomList();
 }
+

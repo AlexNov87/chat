@@ -52,27 +52,13 @@ namespace Service
         }
         return strm.str();
     };
-
-    shared_strand MakeSharedStrand(net::io_context &ioc)
-    {
-        return std::make_shared<strand>(net::make_strand(ioc));
-    }
-    std::shared_ptr<MutableBufferHolder> MakeSharedMutableBuffer()
-    {
-        return std::shared_ptr<Service::MutableBufferHolder>();
-    };
-    std::shared_ptr<net::streambuf> MakeSharedStreambuf()
-    {
-        return std::make_shared<net::streambuf>();
-    };
-
 }
 
 namespace Service
 {
     bool IsAliveSocket(tcp::socket &sock)
     {
-        return sock.is_open();   
+        return sock.is_open();
     }
 
     bool IsAliveSocket(shared_socket sock)
@@ -107,25 +93,19 @@ namespace Service
 
 namespace Service
 {
-    std::string ExtractStrFromStreambuf(net::streambuf &buffer, size_t extract)
+    shared_strand MakeSharedStrand(net::io_context &ioc)
     {
-        const char *data = boost::asio::buffer_cast<const char *>(buffer.data());
-        std::string str(data, extract);
-        boost::algorithm::trim(str);
-        return str;
+        return std::make_shared<strand>(net::make_strand(ioc));
     }
-
-    task ExtractObjectsfromBuffer(net::streambuf &buffer, size_t extract)
+    std::shared_ptr<MutableBufferHolder> MakeSharedMutableBuffer()
     {
-        std::string str(ExtractStrFromStreambuf(buffer, extract));
-        return DeserializeUmap<std::string, std::string>(str);
+        return std::shared_ptr<Service::MutableBufferHolder>();
     };
-    shared_task ExtractSharedObjectsfromBuffer(net::streambuf &buffer, size_t extract)
+    std::shared_ptr<net::streambuf> MakeSharedStreambuf()
     {
-        std::string str(ExtractStrFromStreambuf(buffer, extract));
-        return std::make_shared<task>(DeserializeUmap<std::string, std::string>(str));
+        return std::make_shared<net::streambuf>();
     };
-
+   
     std::shared_ptr<beast::flat_buffer> MakeSharedFlatBuffer()
     {
         return std::make_shared<beast::flat_buffer>();
