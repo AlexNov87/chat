@@ -7,7 +7,7 @@ class MainServer;
 class Chatroom;
 struct Chatuser;
 
-class PrototypeSession : public std::enable_shared_from_this<PrototypeSession>
+class AbstractSession : public std::enable_shared_from_this<AbstractSession>
 {
     void Read();
     void OnRead(err ec, size_t bytes);
@@ -17,7 +17,7 @@ protected:
     beast::flat_buffer readbuf_;
     request request_;
     static std::atomic_int exempslars;
-    PrototypeSession(shared_stream stream)
+    AbstractSession(shared_stream stream)
         : stream_(stream)
     {
         ZyncPrint("PROTOSESS: " + std::to_string(++exempslars) + " IS CONSTRUCTING");
@@ -29,20 +29,9 @@ protected:
     std::string& GetReadResult(){ return request_.body(); }
 public:
     void Run();
-    virtual ~PrototypeSession() { ZyncPrint("SESSION CLOSED.....");};
+    virtual ~AbstractSession() { ZyncPrint("SESSION CLOSED.....");};
 };
 
-class AbstractSession : public PrototypeSession
-{
-protected:
-    AbstractSession(shared_stream stream) : PrototypeSession(stream) {}
-    
-    void StartAfterReadHandle() override;
-    void StartExtractAction();
-    void StartExecuteAction(shared_task action);
-
-   
-};
 
 class ServerSession : public AbstractSession
 {
@@ -50,6 +39,9 @@ class ServerSession : public AbstractSession
     static std::atomic_int exempslars_s;
     friend class Chatroom;
     friend class Chatuser;
+    void StartAfterReadHandle() override;
+    void StartExtractAction();
+    void StartExecuteAction(shared_task action);
     std::string ExecuteReadySession(shared_task action) override;
 public:
     ServerSession(MainServer *server, shared_stream stream)
@@ -67,8 +59,6 @@ class ChatRoomSession : public AbstractSession
 public:
     ChatRoomSession(Chatroom *chat, shared_stream stream)
         : AbstractSession(stream), chatroom_(chat) {};
-  
-
 private:
     std::string ExecuteReadySession(shared_task action) override;
 };
