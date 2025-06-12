@@ -274,6 +274,7 @@ int main()
   });
   
   net::post(*strandwr__,[]{ 
+      test5();
       test3();
   });
   

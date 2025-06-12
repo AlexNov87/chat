@@ -12,10 +12,16 @@ class AbstractSession : public std::enable_shared_from_this<AbstractSession>
     void Read();
     void OnRead(err ec, size_t bytes);
     void OnWrite(bool keep_alive, err ec, size_t bytes);
-    void Сlose();
+    void Close();
+
+    virtual void Iread(){};
+    virtual void Iwrite(){};
     
     beast::flat_buffer readbuf_;
     static std::atomic_int exempslars;
+
+    friend class Chatroom;
+    friend class Chatuser;
 
 protected:
     shared_stream stream_ = nullptr;

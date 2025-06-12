@@ -1,41 +1,45 @@
 #include "srv.h"
 
-
 bool Chatroom::HasToken(const std::string &token)
 {
     std::lock_guard<std::mutex> lg(mtx_);
-     return users_.contains(token);
+    return users_.contains(token);
 }
 
 bool Chatroom::AddUser(shared_stream stream, std::string name,
                        std::string token)
 {
+    std::lock_guard<std::mutex> lg(mtx_);
+   
     bool success = false;
-    {
-        std::lock_guard<std::mutex> lg(mtx_);
-        auto self = weak_from_this();
-        auto it = users_.insert({token, std::make_shared<Chatuser>(stream, self, std::move(name), mainserv_->ioc_)});
-        success = it.second;
-    }
+    auto self = weak_from_this();
+    auto it = users_.insert({token, std::make_shared<Chatuser>(stream, self, std::move(name), mainserv_->ioc_)});
+    success = it.second;
+
     if (success)
     {
+        //Запускаем прослушивание стрима
         users_.at(token)->Run();
+         
+        //Пишем в стрим, После записи он вызовет Read и снова станет на прослушивание..
+        users_.at(token)->Write(ServiceChatroomServer::Srv_MakeSuccessLogin
+        (token, this->name_, this->msg_man_.LastMessages()));
+        
+        
         // ЛОГИРУЕМ СИТЕМНОЕ СООБЩЕНИЕ
         msg_man_.ServiceMessage(users_.at(token)->name_ + " IS CONNECTED");
         return success;
     }
-    return success;   
+    return success;
 }
 
 void Chatroom::SendMessages(const std::string &token, const std::string &name, const std::string &message)
 {
-    
-      //Создаем тело ответа
-      auto str = ServiceChatroomServer::Chr_MakeSuccessUserMessage(name , message);
-      //Создаем сам ответ
-      auto responce = Service::MakeResponce(11, true, http::status::ok, std::move(str)); 
-   
-    std::lock_guard<std::mutex> lg(mtx_);     
+
+    // Создаем тело ответа
+    auto str = ServiceChatroomServer::Chr_MakeSuccessUserMessage(name, message);
+ 
+    std::lock_guard<std::mutex> lg(mtx_);
     std::cout << users_.at(token)->name_ << " : " << message << '\n';
     // Рассылка
     for (auto &&[token, chatuser] : users_)
@@ -45,14 +49,15 @@ void Chatroom::SendMessages(const std::string &token, const std::string &name, c
         {
             continue;
         }
-        //Постим каждому юзеру задачу
-        chatuser->IncomeMessage(responce);
+        // Пишем каждому юзеру в сокет сообщение, OnWrite вызовет 
+        //Read и снова  станет на прослушку.
+        chatuser->Write(str);
     };
 }
 
 void Chatroom::DeleteUser(std::string token)
 {
-    std::lock_guard<std::mutex> lg(mtx_); 
+    std::lock_guard<std::mutex> lg(mtx_);
     users_.erase(token);
 }
 
@@ -61,7 +66,7 @@ std::string Chatroom::RoomMembers()
     std::ostringstream oss;
     oss << "[ ";
     size_t nowpos = 0;
-    
+
     std::unique_lock<std::mutex> ul(mtx_);
     {
         for (auto &&[token, chatuser] : users_)

@@ -62,7 +62,6 @@ namespace ServiceChatroomServer
         task res = GetSuccess();
         res[CONSTANTS::LF_ACTION] = CONSTANTS::ACT_CREATE_USER;
         res[CONSTANTS::LF_NAME] = std::move(name);
-
         return Service::SerializeUmap<std::string, std::string>(res);
     };
     // ОТВЕТ СЕРВЕРА НА УСПЕШНОЕ СОЗДАНИЕ КОМНАТЫ
