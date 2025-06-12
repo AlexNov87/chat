@@ -43,9 +43,8 @@ void AbstractSession::Write(std::string responce_body, http::status status)
     try
     {
         response rsp(Service::MakeResponce(
-            request_.version() , request_.keep_alive(), 
-            status, std::move(responce_body))
-        );
+            request_.version(), request_.keep_alive(),
+            status, std::move(responce_body)));
         ZyncPrint(rsp.body());
         Service::PrintUmap(Service::DeserializeUmap<std::string, std::string>(rsp.body()));
 
@@ -70,7 +69,13 @@ void AbstractSession::OnWrite(bool keep_alive, beast::error_code ec, std::size_t
             stream_->socket().close();
         }
     // Read another request
-    ZyncPrint("WriteComplete");
+    ZyncPrint("WriteComplete.............");
     request_ = {};
     Read();
+}
+
+void AbstractSession::Сlose()
+{
+    beast::error_code ec;
+    stream_->socket().shutdown(tcp::socket::shutdown_send, ec);
 }

@@ -12,6 +12,7 @@ class AbstractSession : public std::enable_shared_from_this<AbstractSession>
     void Read();
     void OnRead(err ec, size_t bytes);
     void OnWrite(bool keep_alive, err ec, size_t bytes);
+    void Сlose();
     
     beast::flat_buffer readbuf_;
     static std::atomic_int exempslars;
@@ -172,10 +173,6 @@ struct Chatuser : public std::enable_shared_from_this<Chatuser>
         // At this point the connection is closed gracefully
     }
 
-    /*
-    void Read();
-    void Run();
-      */
     void IncomeMessage(response resp);
 
     std::string ExecuteReadySesion(shared_task action);
@@ -187,6 +184,7 @@ class Chatroom : public std::enable_shared_from_this<Chatroom>
     friend class MainServer;
     friend class ChatRoomSession;
     friend struct Chatuser;
+    
     MainServer *mainserv_;
     std::string name_;
 
@@ -220,21 +218,20 @@ class MainServer
     
     std::mutex mtx_lock_user_operations_;
     std::mutex mtx_lock_sql_operations_;
-    
-    std::string AddUserToSQL(const std::string &name, const std::string &passhash);
-    //..................
+
 public:
     MainServer(net::io_context &ioc);
     void Listen();
     void init();
     void PrintRooms();
-    // В работе....
+private:
+     // В работе....
     bool AlreadyUserRegistered(const std::string &name); //УБРАТЬ ЗАГЛУШКУ
     bool IsAutorizatedUser(const std::string &name, const std::string &passhash); //УБРАТЬ ЗАГЛУШКУ
-private:
     // Действия
     std::string GetRoomUsersList(const std::string &roomname);
     std::string GetRoomsList();
     std::string CreateRoom(std::string room);
     std::string LoginUser(shared_task action, shared_stream stream);
+    std::string AddUserToSQL(const std::string &name, const std::string &passhash);
 };

@@ -14,7 +14,6 @@ std::string MainServer::LoginUser(shared_task action, shared_stream stream)
         // Генерируем токен
         std::string token = tokezier_.GenerateHEXToken();
 
-        // Блокируем возможность модифицировать комнаты
         {  
             // ЕСЛИ ЕСТЬ ТАКАЯ КОМНАТА
             std::string &roomname = action->at(CONSTANTS::LF_ROOMNAME);
@@ -40,6 +39,9 @@ std::string MainServer::CreateRoom(std::string room)
 {
     try
     {
+         // Во время получения с комнатами ничего не должно происходить.
+        std::lock_guard<std::mutex> lg(mtx_lock_user_operations_);
+        
         if (rooms_.contains(room))
         {
             return ServiceChatroomServer::MakeAnswerError("FAILED TO CREATE ROOM, ROOM WITH THIS NAME IS EXISTS", __func__, CONSTANTS::ACT_CREATE_ROOM);
@@ -59,6 +61,7 @@ std::string MainServer::GetRoomUsersList(const std::string &roomname)
     {
         // Во время получения с комнатами ничего не должно происходить.
         std::lock_guard<std::mutex> lg(mtx_lock_user_operations_);
+        
         if (!rooms_.contains(roomname))
         {
             return ServiceChatroomServer::MakeAnswerError("THERE IS NO ROOM: " + roomname, __func__, CONSTANTS::ACT_GET_USERS);
