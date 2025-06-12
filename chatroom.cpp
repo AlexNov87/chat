@@ -14,7 +14,7 @@ bool Chatroom::AddUser(shared_stream stream, std::string name,
     {
         std::lock_guard<std::mutex> lg(mtx_);
         auto self = weak_from_this();
-        auto it = users_.insert({token, std::make_shared<Chatuser>(self, std::move(name), stream, mainserv_->ioc_)});
+        auto it = users_.insert({token, std::make_shared<Chatuser>(stream, self, std::move(name), mainserv_->ioc_)});
         success = it.second;
     }
     if (success)
@@ -35,13 +35,13 @@ void Chatroom::SendMessages(const std::string &token, const std::string &name, c
       //Создаем сам ответ
       auto responce = Service::MakeResponce(11, true, http::status::ok, std::move(str)); 
    
-std::lock_guard<std::mutex> lg(mtx_);     
+    std::lock_guard<std::mutex> lg(mtx_);     
     std::cout << users_.at(token)->name_ << " : " << message << '\n';
     // Рассылка
     for (auto &&[token, chatuser] : users_)
     {
         // Если сокет недоступен
-        if (!Service::IsAliveSocket(chatuser->stream_->socket()))
+        if (!Service::IsAliveSocket(chatuser->GetStream()->socket()))
         {
             continue;
         }

@@ -32,6 +32,10 @@ void AbstractSession::OnRead(err ec, size_t bytes)
 
 void AbstractSession::Run()
 {
+   if(!stream_) {
+      ZyncPrint("THE STREAM IS DAMAGED");
+      return;
+   }
     net::dispatch(stream_->get_executor(),
                   beast::bind_front_handler(
                       &AbstractSession::Read,
@@ -43,7 +47,7 @@ void AbstractSession::Write(std::string responce_body, http::status status)
     try
     {
         response rsp(Service::MakeResponce(
-            request_.version(), request_.keep_alive(),
+            11, true,
             status, std::move(responce_body)));
         ZyncPrint(rsp.body());
         Service::PrintUmap(Service::DeserializeUmap<std::string, std::string>(rsp.body()));
@@ -54,7 +58,7 @@ void AbstractSession::Write(std::string responce_body, http::status status)
     }
     catch (const std::exception &ex)
     {
-        ZyncPrint("WriteToSocketEXCERPTION");
+        ZyncPrint("WriteToSocketEXCERPTION", ex.what());
     }
 };
 
