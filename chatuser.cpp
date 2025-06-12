@@ -46,7 +46,7 @@
             
            // socket использоваться не будет, передан только в качестве реализации интерфейса
            ServerSession session(room_.lock().get()->mainserv_, stream_);
-           return session.ExecuteReadySession(action, stream_);
+           return session.ExecuteReadySession(action);
         }
         }
         catch(const std::exception &ex){

@@ -2,6 +2,27 @@
 #include <boost/json/src.hpp>
 #include "srv.h"
 
+// В работе....
+bool MainServer::AlreadyUserRegistered(const std::string &name)
+{
+    /*Мютекс блокмруется в AddUserToSQL*/
+    return false; // Заглушка, Убрать......
+    return !users_hash_.contains(name);
+};
+
+bool MainServer::IsAutorizatedUser(const std::string &name, const std::string &passhash)
+{
+    return true; // Заглушка, Убрать......
+
+    // Во время проверки поле users_hash_ не должно модифицироваться
+    std::lock_guard<std::mutex> lg(mtx_lock_sql_operations_);
+    if (!users_hash_.contains(name))
+    {
+        return false;
+    }
+    return (users_hash_.at(name) == passhash);
+}
+
 void MainServer::init()
 {
 
@@ -28,12 +49,11 @@ void MainServer::init()
         auto ip = obj.as_object().at(CONSTANTS::IP).as_string();
         auto port = obj.as_object().at(CONSTANTS::PORT).as_int64();
 
-        std::cout<<"|" << ip << " |" << port << "|\n";
+        std::cout << "|" << ip << " |" << port << "|\n";
         err ec;
         endpoint_ = tcp::endpoint(net::ip::make_address(ip), port);
 
-        
-        acceptor_.open(endpoint_.protocol() , ec);
+        acceptor_.open(endpoint_.protocol(), ec);
         acceptor_.set_option(net::socket_base::reuse_address(true));
         acceptor_.bind(endpoint_);
         acceptor_.listen(net::socket_base::max_listen_connections);
@@ -46,7 +66,6 @@ void MainServer::init()
                 this->CreateRoom(std::string(room.as_string()));
             }
         }
-      
     }
     catch (const std::exception &ex)
     {
@@ -69,7 +88,7 @@ void MainServer::Listen()
              servsess->Run();
              
              
-             Listen();});
+             Listen(); });
 }
 
 MainServer::MainServer(net::io_context &ioc) : ioc_(ioc), acceptor_(net::make_strand(ioc_))
@@ -83,5 +102,3 @@ void MainServer::PrintRooms()
         std::cout << room.first << " members:" << room.second->users_.size() << '\n';
     }
 }
-
-

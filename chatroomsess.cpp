@@ -1,10 +1,5 @@
 #include "srv.h"
 
-std::string ChatRoomSession::GetStringResponceToSocket(shared_task action)
-{
-    return ExecuteReadySession(action);
-};
-
 std::string ChatRoomSession::ExecuteReadySession(shared_task action)
 {
 
