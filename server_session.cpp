@@ -1,22 +1,8 @@
 #include "srv.h"
 
 std::atomic_int ServerSession::exempslars_s = 0;
-std::string ServerSession::GetStringResponceToSocket(shared_task action)
-{
-    auto reason = ServiceChatroomServer::CHK_Chr_CheckErrorsChatServer(*action);
-    if (reason)
-    {
-        return ServiceChatroomServer::MakeAnswerError(*reason, __func__ , "" );
-    }  
-    return ExecuteReadySession(action, stream_);
-}
 
-void ServerSession::ExecuteTask(shared_task action)
-{
-    ExecuteReadySession(action, stream_);
-}
-
-std::string ServerSession::ExecuteReadySession(shared_task action, shared_stream stream)
+std::string ServerSession::ExecuteReadySession(shared_task action)
 {
     try
     {
@@ -37,7 +23,7 @@ std::string ServerSession::ExecuteReadySession(shared_task action, shared_stream
             break;
         case Service::ACTION::LOGIN:           
              ZyncPrint("LOGIN:");
-            return server_->LoginUser(action, stream);
+            return server_->LoginUser(action, stream_);
             break;
         case Service::ACTION::ROOM_LIST:           
            ZyncPrint("::ROOM_LIST:");

@@ -9,7 +9,9 @@ struct Chatuser;
 
 class PrototypeSession : public std::enable_shared_from_this<PrototypeSession>
 {
-
+    void Read();
+    void OnRead(err ec, size_t bytes);
+    void OnWrite(bool keep_alive, err ec, size_t bytes);
 protected:
     shared_stream stream_ = nullptr;
     beast::flat_buffer readbuf_;
@@ -22,26 +24,19 @@ protected:
     };
 
     virtual void StartAfterReadHandle() {};
-
-    void Read();
-    void OnRead(err ec, size_t bytes);
-    void OnWrite(bool keep_alive, err ec, size_t bytes);
     void Write(std::string respbody, http::status status = http::status::ok);
-
+    virtual std::string ExecuteReadySession(shared_task action) {return"";};
+    std::string& GetReadResult(){ return request_.body(); }
 public:
     void Run();
-     virtual ~PrototypeSession()
-    {
-        ZyncPrint("SESSION CLOSED.....");
-    };
+    virtual ~PrototypeSession() { ZyncPrint("SESSION CLOSED.....");};
 };
 
 class AbstractSession : public PrototypeSession
 {
 protected:
     AbstractSession(shared_stream stream) : PrototypeSession(stream) {}
-
-    virtual std::string GetStringResponceToSocket(shared_task action) = 0;
+    
     void StartAfterReadHandle() override;
     void StartExtractAction();
     void StartExecuteAction(shared_task action);
@@ -55,10 +50,7 @@ class ServerSession : public AbstractSession
     static std::atomic_int exempslars_s;
     friend class Chatroom;
     friend class Chatuser;
-    void ExecuteTask(shared_task action);
-    std::string ExecuteReadySession(shared_task action, shared_stream stream);
-    std::string GetStringResponceToSocket(shared_task action) override;
-
+    std::string ExecuteReadySession(shared_task action) override;
 public:
     ServerSession(MainServer *server, shared_stream stream)
         : AbstractSession(stream), server_(server)
@@ -75,10 +67,10 @@ class ChatRoomSession : public AbstractSession
 public:
     ChatRoomSession(Chatroom *chat, shared_stream stream)
         : AbstractSession(stream), chatroom_(chat) {};
-    std::string GetStringResponceToSocket(shared_task action) override;
+  
 
 private:
-    std::string ExecuteReadySession(shared_task action);
+    std::string ExecuteReadySession(shared_task action) override;
 };
 
 struct Chatuser : public std::enable_shared_from_this<Chatuser>

@@ -17,7 +17,7 @@ void AbstractSession::StartExecuteAction(shared_task action)
         else
         {
             // Если все ок - исполняем сессию
-            responce_body = GetStringResponceToSocket(action);
+            responce_body = ExecuteReadySession(action);
         }
         if (responce_body.empty())
         {
