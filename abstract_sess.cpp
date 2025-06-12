@@ -24,7 +24,6 @@ void AbstractSession::StartExecuteAction(shared_task action)
             // При логине пользователя вернется "" значит закрываем сесссию
             return;
         }
-
         Write(std::move(responce_body));
     } // try
     catch (const std::exception &ex)
@@ -97,7 +96,6 @@ void PrototypeSession::Run()
 
 void PrototypeSession::Write(std::string responce_body, http::status status)
 {
-
     try
     {
         response rsp(Service::MakeResponce(11, true, http::status::ok, std::move(responce_body)));
