@@ -14,8 +14,6 @@ std::string MainServer::LoginUser(shared_task action, shared_stream stream)
         // Генерируем токен
         std::string token = tokezier_.GenerateHEXToken();
 
-        bool added = false;
-        std::string last_messages;
         // Блокируем возможность модифицировать комнаты
         {  
             // ЕСЛИ ЕСТЬ ТАКАЯ КОМНАТА
@@ -27,12 +25,8 @@ std::string MainServer::LoginUser(shared_task action, shared_stream stream)
             {
                 return ServiceChatroomServer::MakeAnswerError("NO ROOM: " + roomname, __func__, CONSTANTS::ACT_LOGIN);
             };
-            auto room = rooms_.at(roomname);
-
-            // Послелние сообщения комнтаты
-            last_messages = room->msg_man_.LastMessages();
-           
-            added = room->AddUser(stream, name, token);
+            auto room = rooms_.at(roomname);           
+            room->AddUser(stream, name, token);
             return "";
         } // конец блокировки
     }
