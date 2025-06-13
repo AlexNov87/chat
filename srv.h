@@ -12,8 +12,8 @@ class AbstractSession : public std::enable_shared_from_this<AbstractSession>
 protected:
     enum class DIR
     {
-        INNER,
-        OUTER
+        INNER, //Означает что ответ на сообщение инициированно пользователем на другой стороне 
+        OUTER //Сообщение от системы или других пользователей.
     };
 private:
     void Read();

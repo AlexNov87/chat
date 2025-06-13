@@ -57,10 +57,13 @@ void AbstractSession::Write(DIR dir,std::string responce_body, http::status stat
             11, true,
             http::status::ok, std::move(responce_body)));
        
+       
+       
         // ПИШЕМ В СОКЕТ
-        http::async_write(*stream_, std::move(rsp),
-                          beast::bind_front_handler(&AbstractSession::OnWrite, 
-                          shared_from_this(), dir, true)); // async writ
+      err ec;
+      auto bytes =  http::write(*stream_, std::move(rsp), ec); // async writ
+      OnWrite(dir, true, ec, bytes);
+    
     }
     catch (const std::exception &ex)
     {
@@ -83,6 +86,7 @@ void AbstractSession::OnWrite(DIR dir, bool keep_alive, beast::error_code ec, st
     // Read another request
     ZyncPrint("WriteComplete.............");
   //  request_ = {};
+    if(dir == AbstractSession::DIR::OUTER) {return;}
     Read();
 }
 

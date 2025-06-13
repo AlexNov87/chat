@@ -21,7 +21,7 @@ bool Chatroom::AddUser(shared_stream stream , shared_flatbuf buffer, std::string
      std::make_shared<Chatuser>(std::make_shared<beast::tcp_stream>(std::move(stream->socket()))
     */
     auto it = users_.insert({token, 
-    std::make_shared<Chatuser>(std::make_shared<beast::tcp_stream>(std::move(stream->socket())) , 
+    std::make_shared<Chatuser>(stream, 
     self, std::move(name), mainserv_->ioc_)});
     
     success = it.second;
@@ -30,13 +30,14 @@ bool Chatroom::AddUser(shared_stream stream , shared_flatbuf buffer, std::string
     {
         users_.at(token)->BindAnotherReadBuffer(buffer);
         
-        //Запускаем прослушивание стрима
+        //Не запускаем прослушивание стрима , он был запущен в Сервер - сессии 
        // users_.at(token)->Run();
          
-        //Пишем в стрим, После записи он вызовет Read и снова станет на прослушивание..
+        /*Пишем в стрим, После записи он вызовет Read и снова станет на прослушивание..
+         Инициатор INNER - это поставит на прослушивание
+        */
         users_.at(token)->Write(AbstractSession::DIR::INNER, ServiceChatroomServer::Srv_MakeSuccessLogin
         (token, this->name_, this->msg_man_.LastMessages()));
-        
         
         // ЛОГИРУЕМ СИТЕМНОЕ СООБЩЕНИЕ
         msg_man_.ServiceMessage(users_.at(token)->name_ + " IS CONNECTED");

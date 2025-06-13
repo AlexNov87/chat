@@ -103,7 +103,7 @@ void Read()
     }
     // ZyncPrint("->" + Service::ExtractStrFromStreambuf(*sb, bytes) + "<-");
     auto i = Service::ExtractSharedObjectsfromRequestOrResponce(*req);
-    Service::PrintUmap(*i);
+    Service::PrintUmap(*i );
       
   };
    http::async_read(*socket__, *sb, *req, handler);
@@ -120,31 +120,31 @@ void test3()
      Do3(socket__, UserInterface::US_SrvMakeObjCreateRoom("YAARRRR"));
  });
 
-  net::post(*strandwr__ ,[]{
-     Do3(socket__, UserInterface::US_SrvMakeObjCreateRoom("FFFFFFFFFFFFF"));
- });
- net::post(*strandwr__ ,[]{
-     Do3(socket__, UserInterface::US_SrvMakeObjLogin("OOORRAT", "jijjiw", "YANDEX"));
- });
+//   net::post(*strandwr__ ,[]{
+//      Do3(socket__, UserInterface::US_SrvMakeObjCreateRoom("FFFFFFFFFFFFF"));
+//  });
+//  net::post(*strandwr__ ,[]{
+//      Do3(socket__, UserInterface::US_SrvMakeObjLogin("OOORRAT", "jijjiw", "YANDEX"));
+//  });
 
-  net::post(*strandwr__ ,[]{
-     Do3(socket__, UserInterface::US_SrvMakeObjLogin("UUUUUUUURRAT", "jijjiw", "YANDEX"));
- });
- net::post(*strandwr__ ,[]{
-       Do3(socket__, UserInterface::US_SrvMakeObjRoomList());
- });
+//   net::post(*strandwr__ ,[]{
+//      Do3(socket__, UserInterface::US_SrvMakeObjLogin("UUUUUUUURRAT", "jijjiw", "YANDEX"));
+//  });
+//  net::post(*strandwr__ ,[]{
+//        Do3(socket__, UserInterface::US_SrvMakeObjRoomList());
+//  });
 
- net::post(*strandwr__ ,[]{
-      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDEX"));
- });
+//  net::post(*strandwr__ ,[]{
+//       Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDEX"));
+//  });
 
- net::post(*strandwr__ ,[]{
-      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
- });
+//  net::post(*strandwr__ ,[]{
+//       Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
+//  });
 
- net::post(*strandwr__ ,[]{
-      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOIIIIIIIIIIIIIIIIIIIIIIX"));
- });
+//  net::post(*strandwr__ ,[]{
+//       Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOIIIIIIIIIIIIIIIIIIIIIIX"));
+//  });
   
   
 };
@@ -152,21 +152,21 @@ void test3()
 void test5(){
   
   
-  net::post(*strandwr__ ,[]{
-       Do3(socket__, UserInterface::US_SrvMakeObjRoomList());
- });
+//   net::post(*strandwr__ ,[]{
+//        Do3(socket__, UserInterface::US_SrvMakeObjRoomList());
+//  });
 
- net::post(*strandwr__ ,[]{
-      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDEX"));
- });
+//  net::post(*strandwr__ ,[]{
+//       Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDEX"));
+//  });
 
-  net::post(*strandwr__ ,[]{
-      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
- });
+//   net::post(*strandwr__ ,[]{
+//       Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
+//  });
 
- net::post(*strandwr__ ,[]{
-      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
- });
+//  net::post(*strandwr__ ,[]{
+//       Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
+//  });
 
   net::post(*strandwr__ ,[]{
       Do3(socket__, UserInterface::US_SrvMakeObjCreateUser("UUUUUUUUUUUU", "jshi2jojkojkp"));
