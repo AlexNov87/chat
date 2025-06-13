@@ -15,14 +15,10 @@ set(service
 const.h const.cpp
 service.h service.cpp 
 service_action_check.cpp
-tokenizer.h tokenizer.cpp 
-guardlock.cpp
-guardlock.h
-)
+tokenizer.h tokenizer.cpp )
 
 set(u
 user_foo.cpp
-___testcli.h
 )
 
 set(cliserv 
@@ -50,11 +46,6 @@ target_link_libraries(ex PRIVATE ${Boost_LIBRARIES} Poco::Net Poco::Foundation)
 add_definitions(-DPOCO_STATIC)
 add_executable(cl cli.cpp  ${vars} )
 target_link_libraries(cl ${Boost_LIBRARIES})
-
-add_executable(clx clix.cpp  ${vars} )
-target_link_libraries(cl ${Boost_LIBRARIES})
-target_link_libraries(clx ${Boost_LIBRARIES})
-
 
 
 if(Poco_FOUND)

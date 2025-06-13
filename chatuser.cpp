@@ -1,11 +1,5 @@
 #include "srv.h"
 
-    void Chatuser::IncomeMessage(response resp)
-    {
-        // net::post(*strand_, [self = shared_from_this(), resp]
-        //           { http::write(*self->stream_, resp); self->Read(); });
-    }
-
     std::string Chatuser::ExecuteReadySesion(shared_task action)
     {
 
@@ -55,5 +49,18 @@
 
         return ServiceChatroomServer::MakeAnswerError("", __func__, ""); 
     };
+
+
+    void Chatuser::StartAfterReadHandle()
+    {
+        auto action = Service::ExtractSharedObjectsfromRequestOrResponce(request_);
+        auto resp_body = ExecuteReadySesion(action);
+        Write(AbstractSession::DIR::INNER ,std::move(resp_body), http::status::ok);
+    };
+
+    void Chatuser::BindAnotherReadBuffer(shared_flatbuf buffer)
+    {
+        readbuf_ = buffer;
+    }
 
 

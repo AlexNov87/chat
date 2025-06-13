@@ -48,7 +48,7 @@ void AbstractSession::Run()
                       shared_from_this()));
 };
 
-void AbstractSession::Write(std::string responce_body, http::status status)
+void AbstractSession::Write(DIR dir,std::string responce_body, http::status status)
 {
     try
     {
@@ -57,13 +57,10 @@ void AbstractSession::Write(std::string responce_body, http::status status)
             11, true,
             http::status::ok, std::move(responce_body)));
        
-        //ZyncPrint(rsp.body());
-        //Service::PrintUmap(Service::DeserializeUmap<std::string, std::string>(rsp.body()));
-        
-       
         // ПИШЕМ В СОКЕТ
         http::async_write(*stream_, std::move(rsp),
-                          beast::bind_front_handler(&AbstractSession::OnWrite, shared_from_this(), true)); // async writ
+                          beast::bind_front_handler(&AbstractSession::OnWrite, 
+                          shared_from_this(), dir, true)); // async writ
     }
     catch (const std::exception &ex)
     {
@@ -71,7 +68,7 @@ void AbstractSession::Write(std::string responce_body, http::status status)
     }
 };
 
-void AbstractSession::OnWrite(bool keep_alive, beast::error_code ec, std::size_t bytes_transferred)
+void AbstractSession::OnWrite(DIR dir, bool keep_alive, beast::error_code ec, std::size_t bytes_transferred)
 {
     boost::ignore_unused(bytes_transferred);
 

@@ -34,7 +34,7 @@ bool Chatroom::AddUser(shared_stream stream , shared_flatbuf buffer, std::string
        // users_.at(token)->Run();
          
         //Пишем в стрим, После записи он вызовет Read и снова станет на прослушивание..
-        users_.at(token)->Write(ServiceChatroomServer::Srv_MakeSuccessLogin
+        users_.at(token)->Write(AbstractSession::DIR::INNER, ServiceChatroomServer::Srv_MakeSuccessLogin
         (token, this->name_, this->msg_man_.LastMessages()));
         
         
@@ -63,7 +63,7 @@ void Chatroom::SendMessages(const std::string &token, const std::string &name, c
         }
         // Пишем каждому юзеру в сокет сообщение, OnWrite вызовет 
         //Read и снова  станет на прослушку.
-        chatuser->Write(str);
+        chatuser->Write(AbstractSession::DIR::OUTER, str);
     };
 }
 

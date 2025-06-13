@@ -34,33 +34,9 @@ std::shared_ptr<std::vector<std::string>> GetStringValues()
   };
   return std::make_shared<std::vector<std::string>>(std::move(objs));
 }
-std::atomic_int cnt;
-auto values = GetStringValues();
-
 void Read();
 
-void test1()
-{
-
-  try
-  {
-    auto buf = Service::MakeSharedStreambuf();
-
-    for (auto &&str : *values)
-    {
-
-      net::async_write(*socket__, net::buffer(str), [](err ec, size_t bytes)
-                       { Read(); });
-    }
-  }
-  catch (const std::exception &ex)
-  {
-    std::cout << ex.what();
-    system("pause");
-  }
-}
-
-void test2()
+void _______()
 {
   std::vector<std::string> o{
 
@@ -73,24 +49,6 @@ void test2()
       UserInterface::US_SrvMakeObjRoomList()
 
   };
-  for (int q = 0; q < 1; ++q)
-  {
-    for (int i = 0; i < o.size(); ++i)
-    {
-      ZyncPrint("ITER " + std::to_string(i));
-      tcp::socket sock{ioc};
-      InitSocket(sock);
-
-      auto req = Service::MakeRequest(http::verb::get, 11, o[i]);
-      http::write(sock, req);
-      beast::flat_buffer buf;
-      response resp;
-      http::read(sock, buf, resp);
-      auto data = Service::ExtractSharedObjectsfromRequestOrResponce(resp);
-      Service::PrintUmap(*data);
-      sock.close();
-    }
-  }
 }
 
 void InitSocket(tcp::socket &sock)
@@ -113,44 +71,6 @@ void InitSocket(tcp::socket &sock)
     std::cerr << "COnnect error: " << ec.message() << std::endl;
   }
 }
-
-std::mutex m;
-void Do(shared_socket sock, std::string act)
-{
-
-  auto lam = [act, sock]
-  {
-    auto req = Service::MakeRequest(http::verb::get, 11, UserInterface::US_SrvMakeObjLogin("RRAT", "jijjiw", "YANDEX"));
-
-    http::async_write(*sock, req, [sock](err ec, size_t bytes)
-                      {
-                        beast::flat_buffer buf;
-                        auto sh = std::make_shared<response>();
-                        response rs;
-                        http::async_read(*sock, buf, *sh, [sh](err ec, size_t bytes)
-                                         {
-      if(!ec){
-      auto data = Service::ExtractSharedObjectsfromRequestOrResponce(*sh);
-      std::lock_guard<std::mutex>lg(m);
-      Service::PrintUmap(*data);
-      
-      } else {
-        ZyncPrint("ERR", ec.message());}; }); });
-  };
-  net::post(*strand__, lam);
-};
-
-
-void Read();
-void Do2(shared_socket sock, std::string act)
-{
-  err ec;
-  auto req = Service::MakeRequest(http::verb::get, 11, act);
-  ZyncPrint("WRITE.............");
-    http::write(*sock, req, ec);
-  Read();
-};
-
 
 void Do3(shared_socket sock, std::string act)
 {
@@ -229,14 +149,6 @@ void test3()
   
 };
 
-void test4()
-{
-   Do2(socket__, UserInterface::US_SrvMakeObjLogin("RRAT", "jijjiw", "YANDEX"));
-   Do2(socket__, UserInterface::US_SrvMakeObjLogin("OOORRAT", "jijjiw", "YANDEX"));
-   Do2(socket__, UserInterface::US_SrvMakeObjLogin("UUUUUUUURRAT", "jijjiw", "YANDEX"));
-}
-
-
 void test5(){
   
   
@@ -266,8 +178,6 @@ void test5(){
 int main()
 {
   InitSocket(*socket__);
-
- // std::jthread([]{});
   
   net::post(*strand__,[]{ 
       Read();
@@ -280,6 +190,5 @@ int main()
   
   Service::MtreadRunContext(ioc);  
 
-  // запуск ioc
  
 }

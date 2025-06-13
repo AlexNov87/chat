@@ -40,7 +40,6 @@
 #include <future>
 #include <cassert>
 #include "const.h"
-#include "guardlock.h"
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
 using task = std::unordered_map<std::string, std::string>;
