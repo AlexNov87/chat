@@ -18,7 +18,7 @@ class AbstractSession : public std::enable_shared_from_this<AbstractSession>
     virtual std::string Iread(){ return "ABSTRACT I READ";};
     virtual std::string Iwrite() { return "ABSTRACT I WRITE";};
     
-    beast::flat_buffer readbuf_;
+    
     static std::atomic_int exempslars;
 
     std::mutex mtx_use_buf_;
@@ -28,6 +28,7 @@ class AbstractSession : public std::enable_shared_from_this<AbstractSession>
     friend class Chatuser;
 
 protected:
+    shared_flatbuf readbuf_ = Service::MakeSharedFlatBuffer();
     shared_stream stream_ = nullptr;
     request request_;
     AbstractSession(shared_stream stream)
@@ -35,7 +36,6 @@ protected:
     virtual void StartAfterReadHandle() {};
     virtual std::string ExecuteReadySession(shared_task action) {return"";};
     void Write(std::string respbody, http::status status = http::status::ok);
-    
 public:
     void Run();
     virtual ~AbstractSession() { ZyncPrint("SESSION CLOSED.....");};
@@ -86,10 +86,18 @@ struct Chatuser : public AbstractSession
         auto resp_body = ExecuteReadySesion(action);
         Write(std::move(resp_body), http::status::ok);
     };
+
+
+    void BindAnotherReadBuffer(shared_flatbuf buffer){
+         readbuf_ = buffer;
+         auto data = readbuf_->data();
+    std::string result(boost::asio::buffer_cast<const char*>(data), boost::asio::buffer_size(data));
+    ZyncPrint(WhoAmI(), "(READ) BUFFER----->" , result , "\n" );
+    }
    
     void IncomeMessage(response resp);
     std::string ExecuteReadySesion(shared_task action);
-     std::string WhoAmI() override {return "I AM CHATUSER........";};
+    std::string WhoAmI() override {return "I AM CHATUSER........";};
 };
 
 class Chatroom : public std::enable_shared_from_this<Chatroom>
@@ -111,7 +119,7 @@ public:
 
 private:
     bool HasToken(const std::string &token);
-    bool AddUser(shared_stream stream, std::string name, std::string token);
+    bool AddUser(shared_stream stream, shared_flatbuf buffer,  std::string name, std::string token);
     void SendMessages(const std::string &token, const std::string &name, const std::string &message);
     void DeleteUser(std::string token);
     std::string RoomMembers();
@@ -146,6 +154,6 @@ private:
     std::string GetRoomUsersList(const std::string &roomname);
     std::string GetRoomsList();
     std::string CreateRoom(std::string room);
-    std::string LoginUser(shared_task action, shared_stream stream);
+    std::string LoginUser(shared_task action, shared_flatbuf buffer,  shared_stream stream);
     std::string AddUserToSQL(const std::string &name, const std::string &passhash);
 };

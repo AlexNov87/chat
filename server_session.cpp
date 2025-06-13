@@ -22,7 +22,7 @@ std::string ServerSession::ExecuteReadySession(shared_task action)
             break;
         case Service::ACTION::LOGIN:           
              ZyncPrint("LOGIN:");
-            return server_->LoginUser(action, stream_);
+            return server_->LoginUser(action ,  readbuf_, stream_ );
             break;
         case Service::ACTION::ROOM_LIST:           
            ZyncPrint("::ROOM_LIST:");

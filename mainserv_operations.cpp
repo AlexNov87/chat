@@ -1,6 +1,6 @@
 #include "srv.h"
 
-std::string MainServer::LoginUser(shared_task action, shared_stream stream)
+std::string MainServer::LoginUser(shared_task action, shared_flatbuf buffer, shared_stream stream)
 {
     try
     {
@@ -25,7 +25,7 @@ std::string MainServer::LoginUser(shared_task action, shared_stream stream)
                 return ServiceChatroomServer::MakeAnswerError("NO ROOM: " + roomname, __func__, CONSTANTS::ACT_LOGIN);
             };
             auto room = rooms_.at(roomname);           
-            room->AddUser(stream, name, token);
+            room->AddUser(stream, buffer, name, token);
             return "";
         } // конец блокировки
     }

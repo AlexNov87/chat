@@ -16,15 +16,10 @@ void AbstractSession::Read()
         Service::ShutDownSocket(stream_->socket());
         return;
     }
-    
-    auto data = readbuf_.data();
-    std::string result(boost::asio::buffer_cast<const char*>(data), boost::asio::buffer_size(data));
-    ZyncPrint(WhoAmI(), "\n(READ) BUFFER----->\n" , result , "\n\n" );
-    
-    
+      
     // Начинаем асинхронноен чтение
     //  std::lock_guard<std::mutex> lg(mtx_use_buf_);
-    http::async_read(*stream_, readbuf_, request_,
+    http::async_read(*stream_, *readbuf_, request_,
                      beast::bind_front_handler(&AbstractSession::OnRead, shared_from_this())); // async read until
 };
 
@@ -46,6 +41,7 @@ void AbstractSession::Run()
       ZyncPrint("THE STREAM IS DAMAGED...........RUN()");
       return;
    }
+    
     net::dispatch(stream_->get_executor(),
                   beast::bind_front_handler(
                       &AbstractSession::Read,

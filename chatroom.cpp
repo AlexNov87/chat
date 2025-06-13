@@ -6,7 +6,7 @@ bool Chatroom::HasToken(const std::string &token)
     return users_.contains(token);
 }
 
-bool Chatroom::AddUser(shared_stream stream, std::string name,
+bool Chatroom::AddUser(shared_stream stream , shared_flatbuf buffer, std::string name,
                        std::string token)
 {
     std::lock_guard<std::mutex> lg(mtx_);
@@ -28,8 +28,10 @@ bool Chatroom::AddUser(shared_stream stream, std::string name,
 
     if (success)
     {
+        users_.at(token)->BindAnotherReadBuffer(buffer);
+        
         //Запускаем прослушивание стрима
-        users_.at(token)->Run();
+       // users_.at(token)->Run();
          
         //Пишем в стрим, После записи он вызовет Read и снова станет на прослушивание..
         users_.at(token)->Write(ServiceChatroomServer::Srv_MakeSuccessLogin
