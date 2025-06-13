@@ -200,31 +200,31 @@ void test3()
      Do3(socket__, UserInterface::US_SrvMakeObjCreateRoom("YAARRRR"));
  });
 
-  net::post(*strandwr__ ,[]{
-     Do3(socket__, UserInterface::US_SrvMakeObjCreateRoom("FFFFFFFFFFFFF"));
- });
- net::post(*strandwr__ ,[]{
-     Do3(socket__, UserInterface::US_SrvMakeObjLogin("OOORRAT", "jijjiw", "YANDEX"));
- });
+//   net::post(*strandwr__ ,[]{
+//      Do3(socket__, UserInterface::US_SrvMakeObjCreateRoom("FFFFFFFFFFFFF"));
+//  });
+//  net::post(*strandwr__ ,[]{
+//      Do3(socket__, UserInterface::US_SrvMakeObjLogin("OOORRAT", "jijjiw", "YANDEX"));
+//  });
 
-  net::post(*strandwr__ ,[]{
-     Do3(socket__, UserInterface::US_SrvMakeObjLogin("UUUUUUUURRAT", "jijjiw", "YANDEX"));
- });
- net::post(*strandwr__ ,[]{
-       Do3(socket__, UserInterface::US_SrvMakeObjRoomList());
- });
+//   net::post(*strandwr__ ,[]{
+//      Do3(socket__, UserInterface::US_SrvMakeObjLogin("UUUUUUUURRAT", "jijjiw", "YANDEX"));
+//  });
+//  net::post(*strandwr__ ,[]{
+//        Do3(socket__, UserInterface::US_SrvMakeObjRoomList());
+//  });
 
- net::post(*strandwr__ ,[]{
-      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDEX"));
- });
+//  net::post(*strandwr__ ,[]{
+//       Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDEX"));
+//  });
 
- net::post(*strandwr__ ,[]{
-      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
- });
+//  net::post(*strandwr__ ,[]{
+//       Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
+//  });
 
- net::post(*strandwr__ ,[]{
-      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
- });
+//  net::post(*strandwr__ ,[]{
+//       Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
+//  });
   
   
 };
@@ -240,21 +240,21 @@ void test4()
 void test5(){
   
   
-  net::post(*strandwr__ ,[]{
-       Do3(socket__, UserInterface::US_SrvMakeObjRoomList());
- });
+//   net::post(*strandwr__ ,[]{
+//        Do3(socket__, UserInterface::US_SrvMakeObjRoomList());
+//  });
 
- net::post(*strandwr__ ,[]{
-      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDEX"));
- });
+//  net::post(*strandwr__ ,[]{
+//       Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDEX"));
+//  });
 
-  net::post(*strandwr__ ,[]{
-      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
- });
+//   net::post(*strandwr__ ,[]{
+//       Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
+//  });
 
- net::post(*strandwr__ ,[]{
-      Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
- });
+//  net::post(*strandwr__ ,[]{
+//       Do3(socket__, UserInterface::US_SrvMakeObjGetUsers("YANDOOOOOX"));
+//  });
 
   net::post(*strandwr__ ,[]{
       Do3(socket__, UserInterface::US_SrvMakeObjCreateUser("UUUUUUUUUUUU", "jshi2jojkojkp"));

@@ -13,7 +13,17 @@ bool Chatroom::AddUser(shared_stream stream, std::string name,
    
     bool success = false;
     auto self = weak_from_this();
-    auto it = users_.insert({token, std::make_shared<Chatuser>(stream, self, std::move(name), mainserv_->ioc_)});
+    
+    /*Чатюзер - это по сути непрерывная сессия по которой могут поступать сообщения как
+     от самого сокет-холдера на другой стороне, так и от других сессий... Обращение на
+     создание юзера это создание такой сессии, из стрима старой сессии мы извлекаем сокет,
+     создаем новый стрим.
+     std::make_shared<Chatuser>(std::make_shared<beast::tcp_stream>(std::move(stream->socket()))
+    */
+    auto it = users_.insert({token, 
+    std::make_shared<Chatuser>(std::make_shared<beast::tcp_stream>(std::move(stream->socket())) , 
+    self, std::move(name), mainserv_->ioc_)});
+    
     success = it.second;
 
     if (success)

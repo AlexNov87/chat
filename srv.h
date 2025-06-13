@@ -14,11 +14,15 @@ class AbstractSession : public std::enable_shared_from_this<AbstractSession>
     void OnWrite(bool keep_alive, err ec, size_t bytes);
     void Close();
 
-    virtual void Iread(){};
-    virtual void Iwrite(){};
+    virtual std::string WhoAmI(){return "I AM ABSTRACT........";};
+    virtual std::string Iread(){ return "ABSTRACT I READ";};
+    virtual std::string Iwrite() { return "ABSTRACT I WRITE";};
     
     beast::flat_buffer readbuf_;
     static std::atomic_int exempslars;
+
+    std::mutex mtx_use_buf_;
+    std::mutex mtx_use_write_;
 
     friend class Chatroom;
     friend class Chatuser;
@@ -47,6 +51,7 @@ class ServerSession : public AbstractSession
     void StartAfterReadHandle() override;
     void StartExtractAction();
     void StartExecuteAction(shared_task action);
+    std::string WhoAmI() override {return "I AM SERVERSESS........";};
     
 public:
     std::string ExecuteReadySession(shared_task action) override;
@@ -75,16 +80,16 @@ struct Chatuser : public AbstractSession
     std::weak_ptr<Chatroom> room_;
     std::string name_;
     shared_strand strand_;
-
+    
     void StartAfterReadHandle() override {
         auto action = Service::ExtractSharedObjectsfromRequestOrResponce(request_);
-        Service::PrintUmap(*action);
         auto resp_body = ExecuteReadySesion(action);
         Write(std::move(resp_body), http::status::ok);
     };
    
     void IncomeMessage(response resp);
     std::string ExecuteReadySesion(shared_task action);
+     std::string WhoAmI() override {return "I AM CHATUSER........";};
 };
 
 class Chatroom : public std::enable_shared_from_this<Chatroom>

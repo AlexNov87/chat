@@ -16,8 +16,14 @@ void AbstractSession::Read()
         Service::ShutDownSocket(stream_->socket());
         return;
     }
-
+    
+    auto data = readbuf_.data();
+    std::string result(boost::asio::buffer_cast<const char*>(data), boost::asio::buffer_size(data));
+    ZyncPrint(WhoAmI(), "\n(READ) BUFFER----->\n" , result , "\n\n" );
+    
+    
     // Начинаем асинхронноен чтение
+    //  std::lock_guard<std::mutex> lg(mtx_use_buf_);
     http::async_read(*stream_, readbuf_, request_,
                      beast::bind_front_handler(&AbstractSession::OnRead, shared_from_this())); // async read until
 };
@@ -50,12 +56,15 @@ void AbstractSession::Write(std::string responce_body, http::status status)
 {
     try
     {
+        std::lock_guard<std::mutex> lg(mtx_use_write_);
         response rsp(Service::MakeResponce(
             11, true,
             http::status::ok, std::move(responce_body)));
-        ZyncPrint(rsp.body());
-        Service::PrintUmap(Service::DeserializeUmap<std::string, std::string>(rsp.body()));
-
+       
+        //ZyncPrint(rsp.body());
+        //Service::PrintUmap(Service::DeserializeUmap<std::string, std::string>(rsp.body()));
+        
+       
         // ПИШЕМ В СОКЕТ
         http::async_write(*stream_, std::move(rsp),
                           beast::bind_front_handler(&AbstractSession::OnWrite, shared_from_this(), true)); // async writ

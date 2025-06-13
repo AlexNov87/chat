@@ -39,9 +39,9 @@ public:
         int cnt;
         for(auto&& msg : message_queue_){
             ++cnt;
-            strm << '"' << msg.author << " \" : \" " << msg.message << '"';
+            strm << "{\"" << msg.author << " \" : \" " << msg.message << "\"}";
             if(cnt >= (loops - 1)){break;}
-            strm << " , ";
+            strm << ',';
         }
         strm << '}';
         return strm.str();
